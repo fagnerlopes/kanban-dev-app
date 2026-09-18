@@ -59,15 +59,20 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - [x] Backend: schema (migration 001), API JSON, /up, gancho Sentry
 - [x] Backend: testes Layer 1 (5 testes, PASS)
 - [x] Docs: PRD, TASKS, INFRASTRUCTURE, 2 ADRs, WORKSHOP
-- [ ] Frontend: scaffold React Router + shadcn + Tailwind
-- [ ] Frontend: tema claro/escuro persistido
-- [ ] Frontend: login mockado
-- [ ] Frontend: board com drag-and-drop
-- [ ] Frontend: testes Layer 2 (Vitest)
-- [ ] Dockerfile multi-stage
+- [x] Frontend: scaffold React Router + shadcn + Tailwind
+- [x] Frontend: tema claro/escuro persistido (toggle ok, sem FOUC)
+- [x] Frontend: login mockado
+- [x] Frontend: board com drag-and-drop
+- [x] Frontend: testes Layer 2 (Vitest, 10 tests PASS)
+- [x] Visual check: light + dark (Playwright)
+- [x] Commit + push GitHub (master 5417897)
+- [ ] Dockerfile multi-stage (frontend + backend)
 - [ ] Pipeline de deploy (GHA + Kamal, só com secrets)
 - [ ] Bugs plantados (após app funcional)
 
 ## Próximo passo
-Frontend (scaffold → tema → login → board → testes Layer 2 → visual check).
-Só commitar **depois** de todos os gates do playbook (tests + visual + docs).
+1. Dockerfiles (backend golang:1.27-alpine; frontend node:24-alpine → nginx:alpine,
+   build client, serve SPA + proxy /api).
+2. Pipeline GHA: push → build/test → **se** secrets Locaweb Cloud existirem →
+   deploy via Kamal. Sem secrets, só CI verde (não faz deploy).
+3. Plantar os bugs (após tudo verde).
