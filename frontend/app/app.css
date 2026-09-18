@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/*
+  Kanban Dev Flow — theme tokens.
+  Single source of truth. Components reference ONLY these variables.
+  Dark mode is selected via [data-theme="dark"] (owned by the inline head
+  script in root.tsx), NOT the .dark class — each mode is a curated palette,
+  not an inversion.
+*/
+
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Chivo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: light;
+
+  /* App palette (custom tokens used directly by our components) */
+  --color-bg: #fafaf9;
+  --color-bg-elevated: #ffffff;
+  --color-surface: #f5f5f4;
+  --color-surface-hover: #e7e5e4;
+  --color-fg: #1c1917;
+  --color-muted: #57534e;
+  --color-faint: #a8a29e;
+  --color-border: #e7e5e4;
+  --color-border-strong: #d6d3d1;
+  --color-accent: #16a34a;
+  --color-accent-fg: #ffffff;
+  --color-accent-soft: #dcfce7;
+
+  /* Per-column tints (the memorable detail: a colored left bar per column) */
+  --col-backlog: #a8a29e;
+  --col-todo: #0ea5e9;
+  --col-indev: #f59e0b;
+  --col-review: #8b5cf6;
+  --col-done: #16a34a;
+
+  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.06), 0 1px 3px rgba(28, 25, 23, 0.08);
+  --shadow-card-hover: 0 4px 12px rgba(28, 25, 23, 0.12);
+
+  /* shadcn component tokens (curated to match the app palette) */
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+  --primary: #16a34a;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f4;
+  --secondary-foreground: #1c1917;
+  --muted: #f5f5f4;
+  --muted-foreground: #57534e;
+  --accent: #f5f5f4;
+  --accent-foreground: #1c1917;
+  --destructive: #dc2626;
+  --border: #e7e5e4;
+  --input: #d6d3d1;
+  --ring: #16a34a;
+  --radius: 0.625rem;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #0c0a09;
+  --color-bg-elevated: #1c1917;
+  --color-surface: #1c1917;
+  --color-surface-hover: #292524;
+  --color-fg: #f5f5f4;
+  --color-muted: #a8a29e;
+  --color-faint: #57534e;
+  --color-border: #292524;
+  --color-border-strong: #44403c;
+  --color-accent: #4ade80;
+  --color-accent-fg: #0c0a09;
+  --color-accent-soft: #14532d;
+
+  --col-backlog: #78716c;
+  --col-todo: #38bdf8;
+  --col-indev: #fbbf24;
+  --col-review: #a78bfa;
+  --col-done: #4ade80;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.6);
+
+  --background: #0c0a09;
+  --foreground: #f5f5f4;
+  --card: #1c1917;
+  --card-foreground: #f5f5f4;
+  --popover: #1c1917;
+  --popover-foreground: #f5f5f4;
+  --primary: #4ade80;
+  --primary-foreground: #0c0a09;
+  --secondary: #1c1917;
+  --secondary-foreground: #f5f5f4;
+  --muted: #1c1917;
+  --muted-foreground: #a8a29e;
+  --accent: #292524;
+  --accent-foreground: #f5f5f4;
+  --destructive: #f87171;
+  --border: #292524;
+  --input: #44403c;
+  --ring: #4ade80;
+}
+
+/* Map shadcn tokens to Tailwind theme so bg-background/text-foreground etc. work. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Subtle background texture: a faint dotted grid, like a dev workbench. */
+.bg-workbench {
+  background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+}

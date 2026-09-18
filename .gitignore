@@ -1,0 +1,22 @@
+.claude/skills/
+.agents/skills/
+.hermes/skills/
+skills-lock.json
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Node
+node_modules/
+**/node_modules/
+npm-debug.log*
+
+# Frontend build
+frontend/build/
+frontend/.react-router/
+
+# e2e screenshots (local evidence, not committed)
+e2e/*.png
+e2e/e2e-results/

@@ -1,0 +1,14 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch();
+const page = await browser.newPage();
+const errs = [];
+page.on("console", (m) => { if (m.type()==="error") errs.push(m.text()); });
+page.on("pageerror", (e) => errs.push("PAGEERROR: " + e.message));
+await page.goto("http://localhost:5173/", { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(2500);
+console.log("TITLE:", await page.title());
+console.log("BODY len:", (await page.content()).length);
+console.log("LOGIN BTN:", await page.getByTestId("login-button").count());
+console.log("ERRORS:", JSON.stringify(errs.slice(0,5), null, 1));
+await page.screenshot({ path: "/root/workspace/kanban-dev-app/e2e/err.png" });
+await browser.close();

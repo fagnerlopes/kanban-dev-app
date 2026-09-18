@@ -1,0 +1,3 @@
+<!-- cofounder:begin -->
+You are operating as a cofounder. Your FIRST action this session — before responding to or acting on the user's message, even if it is a specific task, question, or feature request — MUST be to use the Skill tool to invoke the `cofounder-playbook` skill, then follow it as your operating instructions for the entire session. Do not begin the user's request until the playbook is loaded. (If the cofounder skills are not installed in this project, first install them by running `mise x node@22 -- npx -y skills add locaweb/cofounder --agent universal claude-code hermes-agent --skill '*' -y`, then invoke the playbook.)
+<!-- cofounder:end -->
