@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"net/url"
+	"os"
+)
 
 // Config holds runtime configuration read from environment variables.
 // Locally, values come from .env; in deployed environments, from Kamal config.
@@ -22,7 +25,7 @@ type Config struct {
 func Load() Config {
 	cfg := Config{
 		Port:        getenv("PORT", "8080"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
+		DatabaseURL: normalizeDatabaseURL(os.Getenv("DATABASE_URL")),
 		BaseURL:     getenv("BASE_URL", "http://localhost:5173"),
 		DevMode:     os.Getenv("DEV_MODE") == "1",
 		SentryDSN:   os.Getenv("SENTRY_DSN"),
@@ -35,4 +38,23 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// normalizeDatabaseURL re-serializes the userinfo (user:password) of a
+// postgres:// DSN so the password is always percent-encoded. This makes the
+// DSN safe for net/url / pgx even if the password contains characters like
+// '@', '/', '+' or '#'. If the URL cannot be parsed (e.g. the password
+// already broke parsing), the input is returned unchanged so the driver
+// surfaces the underlying error.
+func normalizeDatabaseURL(dsn string) string {
+	if dsn == "" {
+		return dsn
+	}
+	u, err := url.Parse(dsn)
+	if err != nil || u.User == nil {
+		return dsn
+	}
+	pass, _ := u.User.Password()
+	u.User = url.UserPassword(u.User.Username(), pass)
+	return u.String()
 }
