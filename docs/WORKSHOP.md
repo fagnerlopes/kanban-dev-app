@@ -70,16 +70,28 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - [x] Pipeline de deploy (GHA + Kamal, só com secrets)
 - [ ] Bugs plantados (após app funcional)
 
-## Deploy (estado)
+## Estado ao dormir (2026-09-19 ~05:30)
 
-- Preview provisionado na Locaweb Cloud via `deploy-preview.yml` (push na `master`).
-- Bug corrigido: `POSTGRES_PASSWORD` com caracteres especiais quebrava o parse de
-  URL do pgx (`invalid userinfo`). Resolvido com (a) senha alfanumérica e
-  (b) `normalizeDatabaseURL` no `config.go` (percent-encode do password).
-- Nota: o IP do primeiro provision era de outro projeto (pool dinâmico do
-  CloudStack); teardowns limpos garantem provision fresh sem resíduo de expunge.
-- Cache de estado do provision (`infra-*`) no Actions precisava ser limpo para o
-  provision recriar de fato após teardown (senão ele "skipped" por cache stale).
+- **Deploy `35423643294`** rodando em background (watch ativo). Provision está
+  **criando de verdade** (sem "skipped") após limpar o cache de estado `infra-*`.
+- **Causa raiz dos 3 deploys anteriores** (resolvido):
+  1. `POSTGRES_PASSWORD` com `-`/`_` quebrava o parse do pgx → senha alfanumérica
+     + `normalizeDatabaseURL` (commit `981c63a`).
+  2. IP do provision era de **outro projeto** (pool dinâmico do CloudStack).
+  3. **Cache de estado** do provision no Actions ficava "stale" após teardown →
+     provision "skipped" a criação e o deploy SSH em IPs que não existiam.
+     **Fix:** apagar caches `infra-*` do repo (`gh api DELETE .../actions/caches/<id>`).
+- **Checklist pra amanhã (se o deploy ainda não subiu):**
+  - [ ] `gh run view 35423643294` → se failure, `--log-failed`.
+  - [ ] Se "skipped" de novo: limpar caches `infra-*` e re-push.
+  - [ ] Se healthy: pegar `web_ip` de `provision-output.json` e abrir
+    `https://<web_ip>.nip.io`.
+  - [ ] Se app no ar: **plantar bugs** (backend migration syntax + frontend
+    runtime) → PR + deploy.
+  - [ ] Configurar **Sentry DSN** (hook já no código, DSN faltando).
+- **VMs:** as de `191.252.226.176`/`.198` são de OUTRO projeto (não mexer).
+- **PAT do gh:** token de admin (muitos escopos) — revisar para escopo mínimo
+  (`repo` + `write:packages` + `workflow`) quando possível.
 
 ## Próximo passo
 1. Confirmar o preview no ar (`https://<web_ip>.nip.io/up` → 200).
