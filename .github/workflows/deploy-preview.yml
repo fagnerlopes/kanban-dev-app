@@ -52,6 +52,13 @@ jobs:
         with:
           ruby-version: "3.4"
 
+      - name: Debug secret sizes (length only, no values)
+        run: |
+          echo "POSTGRES_PASSWORD length: ${#POSTGRES_PASSWORD}"
+          echo "SENTRY_DSN length: ${#SENTRY_DSN}"
+          # verifica se tem caractere nao-alfanum (0 = ok)
+          echo "POSTGRES_PASSWORD non-alnum chars: $(echo -n "$POSTGRES_PASSWORD" | grep -cE '[^A-Za-z0-9]')"
+
       - run: gem install kamal --no-document
 
       - name: Deploy with Kamal
