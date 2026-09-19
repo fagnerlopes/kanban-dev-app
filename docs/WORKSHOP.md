@@ -76,7 +76,8 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - Bug corrigido: `POSTGRES_PASSWORD` com caracteres especiais quebrava o parse de
   URL do pgx (`invalid userinfo`). Resolvido com (a) senha alfanumérica e
   (b) `normalizeDatabaseURL` no `config.go` (percent-encode do password).
-- Teardown + re-provision fazem o `web.env` ser reescrito com a senha nova.
+- Nota: o IP do primeiro provision era de outro projeto (pool dinâmico do
+  CloudStack); teardowns limpos garantem provision fresh sem resíduo de expunge.
 
 ## Próximo passo
 1. Confirmar o preview no ar (`https://<web_ip>.nip.io/up` → 200).
