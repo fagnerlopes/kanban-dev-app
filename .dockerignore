@@ -1,0 +1,26 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules
+**/node_modules
+npm-debug.log*
+
+# Builds (rebuilt inside the image)
+frontend/build
+frontend/.react-router
+backend/server
+
+# Local dev artifacts
+e2e/*.png
+e2e/e2e-results
+*.log
+
+# Cofounder skills (not needed in image)
+.agents
+.claude
+.hermes
+skills-lock.json

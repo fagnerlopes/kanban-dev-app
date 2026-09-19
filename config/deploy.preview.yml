@@ -1,0 +1,28 @@
+servers:
+  web:
+    hosts:
+      - <%= ENV['INFRA_WEB_IP'] %> # provision job exports web VM IP address INFRA_WEB_IP
+
+env:
+  clear:
+    APP_ENV: preview
+    BASE_URL: https://<%= ENV['INFRA_WEB_IP'] %>.nip.io # or custom domain when configured
+  secret:
+    - DATABASE_URL # obtained from .kamal/secrets.preview
+    - SENTRY_DSN # obtained from .kamal/secrets.preview (may be empty -> reporting disabled)
+
+proxy:
+  host: <%= ENV['INFRA_WEB_IP'] %>.nip.io
+  ssl: true
+
+accessories:
+  db:
+    image: supabase/postgres:17.6.1.171 # see references/postgres-recipe.md
+    host: <%= ENV['INFRA_DB_IP'] %> # provision job exports accessory IP address INFRA_db_IP
+    port: "5432:5432"
+    cmd: "postgres -D /etc/postgresql -c shared_buffers=512MB -c effective_cache_size=1536MB -c work_mem=5MB -c maintenance_work_mem=128MB -c max_connections=100" # small plan (2 GiB RAM)
+    env:
+      secret:
+        - POSTGRES_PASSWORD # obtained from .kamal/secrets.preview
+    directories:
+      - /data/pgdata:/var/lib/postgresql/data # volume mount for accessory. Always mount at /data/<subdir>
