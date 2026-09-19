@@ -52,14 +52,24 @@ jobs:
         with:
           ruby-version: "3.4"
 
-      - name: Debug secret sizes (length only, no values)
-        run: |
-          echo "POSTGRES_PASSWORD length: ${#POSTGRES_PASSWORD}"
-          echo "SENTRY_DSN length: ${#SENTRY_DSN}"
-          # verifica se tem caractere nao-alfanum (0 = ok)
-          echo "POSTGRES_PASSWORD non-alnum chars: $(echo -n "$POSTGRES_PASSWORD" | grep -cE '[^A-Za-z0-9]')"
-
       - run: gem install kamal --no-document
+
+      - name: Compose DATABASE_URL (Kamal does not expand $VAR inside composed values)
+        run: |
+          # O .kamal/secrets.preview tem DATABASE_URL com $POSTG...ORD, mas o Kamal
+          # não expande variáveis DENTRO de um valor composto (só quando o valor
+          # inteiro é $VAR). Montamos a DSN final aqui (senha do secret) e
+          # sobrescrevemos a linha no arquivo. O repo é público, então a senha real
+          # NUNCA é commitada — ela vive só no secret e no arquivo gerado no runner.
+          {
+            echo "POSTGRES_PASSWORD=$POSTG...WORD"
+            echo "DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres?sslmode=disable"
+            echo "SENTRY_DSN=${SENTRY_DSN:-}"
+          } > .kamal/secrets.preview
+          # confirma o TAMANHO da DSN montada (sem o valor)
+          echo "DATABASE_URL length: $(grep '^DATABASE_URL=' .kamal/secrets.preview | cut -c14- | wc -c)"
+          # garante permissão restrita
+          chmod 600 .kamal/secrets.preview
 
       - name: Deploy with Kamal
         env:
