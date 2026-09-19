@@ -7,6 +7,7 @@ env:
   clear:
     APP_ENV: preview
     BASE_URL: https://<%= ENV['INFRA_WEB_IP'] %>.nip.io # or custom domain when configured
+    DEV_MODE: "1" # workshop demo: enables mocked login + dev endpoints
   secret:
     - DATABASE_URL # obtained from .kamal/secrets.preview
     - SENTRY_DSN # obtained from .kamal/secrets.preview (may be empty -> reporting disabled)

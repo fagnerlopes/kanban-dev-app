@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -34,6 +35,13 @@ func main() {
 	if err := database.Migrate(ctx, db); err != nil {
 		slog.Error("migration failed", "err", err)
 		os.Exit(1)
+	}
+
+	// Seed default columns (idempotent). The board needs its lanes to exist;
+	// migrations create the table but not the rows. ON CONFLICT keeps this safe
+	// on every restart.
+	if err := seedDefaultColumns(ctx, db); err != nil {
+		slog.Warn("seeding default columns failed (continuing)", "err", err)
 	}
 
 	// Optional Sentry initialization (DSN from env).
@@ -76,6 +84,17 @@ func main() {
 		slog.Error("server error", "err", err)
 		os.Exit(1)
 	}
+}
+
+// seedDefaultColumns inserts the standard Kanban lanes if they don't exist yet.
+// Idempotent via ON CONFLICT (name) DO NOTHING, so it's safe to run on every
+// startup.
+func seedDefaultColumns(ctx context.Context, db *sql.DB) error {
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO columns (name, position) VALUES
+			('Backlog', 0), ('To Do', 1), ('In Dev', 2), ('Review', 3), ('Done', 4)
+		ON CONFLICT (name) DO NOTHING`)
+	return err
 }
 
 // registerFrontend serves the built SPA from the frontendDist directory.
