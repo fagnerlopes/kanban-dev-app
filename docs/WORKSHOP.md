@@ -78,6 +78,8 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
   (b) `normalizeDatabaseURL` no `config.go` (percent-encode do password).
 - Nota: o IP do primeiro provision era de outro projeto (pool dinâmico do
   CloudStack); teardowns limpos garantem provision fresh sem resíduo de expunge.
+- Cache de estado do provision (`infra-*`) no Actions precisava ser limpo para o
+  provision recriar de fato após teardown (senão ele "skipped" por cache stale).
 
 ## Próximo passo
 1. Confirmar o preview no ar (`https://<web_ip>.nip.io/up` → 200).
