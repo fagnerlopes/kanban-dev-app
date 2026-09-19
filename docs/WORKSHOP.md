@@ -66,13 +66,18 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - [x] Frontend: testes Layer 2 (Vitest, 10 tests PASS)
 - [x] Visual check: light + dark (Playwright)
 - [x] Commit + push GitHub (master 5417897)
-- [ ] Dockerfile multi-stage (frontend + backend)
-- [ ] Pipeline de deploy (GHA + Kamal, só com secrets)
+- [x] Dockerfile multi-stage (frontend + backend)
+- [x] Pipeline de deploy (GHA + Kamal, só com secrets)
 - [ ] Bugs plantados (após app funcional)
 
+## Deploy (estado)
+
+- Preview provisionado na Locaweb Cloud via `deploy-preview.yml` (push na `master`).
+- Bug corrigido: `POSTGRES_PASSWORD` com caracteres especiais quebrava o parse de
+  URL do pgx (`invalid userinfo`). Resolvido com (a) senha alfanumérica e
+  (b) `normalizeDatabaseURL` no `config.go` (percent-encode do password).
+- Teardown + re-provision fazem o `web.env` ser reescrito com a senha nova.
+
 ## Próximo passo
-1. Dockerfiles (backend golang:1.27-alpine; frontend node:24-alpine → nginx:alpine,
-   build client, serve SPA + proxy /api).
-2. Pipeline GHA: push → build/test → **se** secrets Locaweb Cloud existirem →
-   deploy via Kamal. Sem secrets, só CI verde (não faz deploy).
-3. Plantar os bugs (após tudo verde).
+1. Confirmar o preview no ar (`https://<web_ip>.nip.io/up` → 200).
+2. Plantar os bugs (backend = sintaxe na migration; frontend = runtime no dnd).
