@@ -64,7 +64,7 @@ export function Column({
       }}
       data-testid="column"
       data-column-id={column.id}
-      className={`flex w-72 shrink-0 flex-col rounded-xl border bg-[var(--color-surface)]/50 transition-colors ${
+      className={`flex h-full min-h-[90%] w-72 shrink-0 flex-col rounded-xl border bg-[var(--color-surface)]/50 transition-colors ${
         isOver
           ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)]/40"
           : "border-[var(--color-border)]"
@@ -94,7 +94,7 @@ export function Column({
       </header>
 
       {/* Task list */}
-      <div className="flex flex-col gap-2 overflow-y-auto px-2 pb-2" style={{ maxHeight: "calc(100vh - 160px)" }}>
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
         {adding && (
           <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2">
             <input

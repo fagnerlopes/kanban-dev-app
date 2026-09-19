@@ -85,7 +85,7 @@ export default function Board() {
   }
 
   return (
-    <main className="min-h-screen bg-workbench flex flex-col">
+    <main className="h-screen bg-workbench flex flex-col overflow-hidden">
       {/* Top bar */}
       <header className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]/80 backdrop-blur px-6 py-3">
         <div className="flex items-center gap-2 font-display font-semibold tracking-tight">
@@ -121,7 +121,7 @@ export default function Board() {
       )}
 
       {/* Board */}
-      <div className="flex-1 overflow-x-auto p-4">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden p-4">
         <div className="flex h-full gap-4">
           {board?.columns.map((col) => (
             <Column
