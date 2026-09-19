@@ -64,7 +64,9 @@ export function Column({
       }}
       data-testid="column"
       data-column-id={column.id}
-      className={`flex h-full min-h-[90%] w-72 shrink-0 flex-col rounded-xl border bg-[var(--color-surface)]/50 transition-colors ${
+      // Columns share the width so all five lanes fit on a normal desktop;
+      // below min-w they stop shrinking and the board scrolls horizontally.
+      className={`flex h-full min-h-[90%] min-w-52 flex-1 flex-col rounded-xl border bg-[var(--color-surface)]/50 transition-colors ${
         isOver
           ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)]/40"
           : "border-[var(--color-border)]"

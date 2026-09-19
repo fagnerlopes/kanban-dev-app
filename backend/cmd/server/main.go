@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
@@ -17,6 +14,10 @@ import (
 	"kanban-dev-app/backend/internal/database"
 	"kanban-dev-app/backend/internal/handler"
 )
+
+// frontendDist must stay the literal "frontend/dist": the binary's working
+// directory in production is the Dockerfile WORKDIR, not backend/.
+const frontendDist = "frontend/dist"
 
 func main() {
 	cfg := config.Load()
@@ -35,13 +36,6 @@ func main() {
 	if err := database.Migrate(ctx, db); err != nil {
 		slog.Error("migration failed", "err", err)
 		os.Exit(1)
-	}
-
-	// Seed default columns (idempotent). The board needs its lanes to exist;
-	// migrations create the table but not the rows. ON CONFLICT keeps this safe
-	// on every restart.
-	if err := seedDefaultColumns(ctx, db); err != nil {
-		slog.Warn("seeding default columns failed (continuing)", "err", err)
 	}
 
 	// Optional Sentry initialization (DSN from env).
@@ -64,8 +58,15 @@ func main() {
 	// JSON API.
 	mux.Handle("/api/", handler.NewAPI(db, cfg))
 
-	// Serve the built frontend (SPA) in non-dev mode.
-	registerFrontend(mux, cfg)
+	// Serve the built SPA. Skipped in local dev only, where Vite serves the
+	// frontend and proxies /api to this backend. DEV_MODE is never set in a
+	// deployed environment — setting it there leaves the app serving 404 on
+	// every page.
+	if cfg.DevMode {
+		slog.Info("dev mode: SPA served by Vite, static handler not registered")
+	} else {
+		handler.RegisterFrontend(mux, frontendDist)
+	}
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
@@ -84,65 +85,4 @@ func main() {
 		slog.Error("server error", "err", err)
 		os.Exit(1)
 	}
-}
-
-// seedDefaultColumns inserts the standard Kanban lanes if they don't exist yet.
-// Idempotent via ON CONFLICT (name) DO NOTHING, so it's safe to run on every
-// startup.
-func seedDefaultColumns(ctx context.Context, db *sql.DB) error {
-	_, err := db.ExecContext(ctx, `
-		INSERT INTO columns (name, position) VALUES
-			('Backlog', 0), ('To Do', 1), ('In Dev', 2), ('Review', 3), ('Done', 4)
-		ON CONFLICT (name) DO NOTHING`)
-	return err
-}
-
-// registerFrontend serves the built SPA from the frontendDist directory.
-// The SPA shell is detected (index.html, or __spa-fallback.html when the build
-// prerenders "/"). Real files are served by http.FileServer (correct
-// Content-Type); unmatched routes fall back to the SPA shell. This handler is
-// only registered in non-dev mode — in dev, Vite serves the frontend and
-// proxies /api to this backend.
-//
-// frontendDist must be the literal "frontend/dist": the binary's working
-// directory in production is the Dockerfile WORKDIR, not backend/.
-func registerFrontend(mux *http.ServeMux, cfg config.Config) {
-	if cfg.DevMode {
-		return
-	}
-	frontendDist := "frontend/dist"
-	if _, err := os.Stat(frontendDist); err != nil {
-		slog.Warn("frontend dist not found — SPA routes will return 404", "path", frontendDist)
-		return
-	}
-
-	spaShell := "index.html"
-	if _, err := os.Stat(filepath.Join(frontendDist, "__spa-fallback.html")); err == nil {
-		spaShell = "__spa-fallback.html"
-	}
-
-	fs := http.FileServer(http.Dir(frontendDist))
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/auth/") {
-			http.NotFound(w, r)
-			return
-		}
-		if r.URL.Path == "/" {
-			fs.ServeHTTP(w, r)
-			return
-		}
-		target := filepath.Join(frontendDist, filepath.Clean(r.URL.Path))
-		if info, err := os.Stat(target); err == nil {
-			if !info.IsDir() {
-				fs.ServeHTTP(w, r) // real asset; FileServer sets Content-Type
-				return
-			}
-			page := filepath.Join(target, "index.html")
-			if _, err := os.Stat(page); err == nil {
-				http.ServeFile(w, r, page)
-				return
-			}
-		}
-		http.ServeFile(w, r, filepath.Join(frontendDist, spaShell))
-	})
 }

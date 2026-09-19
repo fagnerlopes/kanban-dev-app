@@ -7,7 +7,9 @@ env:
   clear:
     APP_ENV: preview
     BASE_URL: https://<%= ENV['INFRA_WEB_IP'] %>.nip.io # or custom domain when configured
-    DEV_MODE: "1" # workshop demo: enables mocked login + dev endpoints
+    # DEV_MODE is deliberately absent. It is a LOCAL-ONLY flag: it registers the
+    # dev login route and tells the Go server that Vite -- not Go -- serves the
+    # SPA. Setting it here makes every page return 404.
   secret:
     - DATABASE_URL # obtained from .kamal/secrets.preview
     - SENTRY_DSN # obtained from .kamal/secrets.preview (may be empty -> reporting disabled)

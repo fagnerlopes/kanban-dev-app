@@ -17,10 +17,10 @@ type boardResponse struct {
 }
 
 type columnWithTasks struct {
-	ID      int32  `json:"id"`
-	Name    string `json:"name"`
-	Position int32 `json:"position"`
-	Tasks   []taskDTO `json:"tasks"`
+	ID       int32     `json:"id"`
+	Name     string    `json:"name"`
+	Position int32     `json:"position"`
+	Tasks    []taskDTO `json:"tasks"`
 }
 
 type taskDTO struct {

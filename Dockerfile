@@ -17,7 +17,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # ---------- Stage 2: build the Go backend ----------
-FROM golang:1.27-alpine AS backend-build
+FROM golang:1-alpine AS backend-build
 WORKDIR /app/backend
 # cache go modules
 COPY backend/go.mod backend/go.sum ./

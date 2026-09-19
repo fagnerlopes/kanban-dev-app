@@ -42,15 +42,16 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - **Frontend:** React Router (ssr:false) + **shadcn** + **lucide-react** +
   **Tailwind**. Design bem dev, **tema claro/escuro persistido em
   localStorage**.
-- **Login:** **mockado** (usuário demo; `POST /api/dev/login` só com
-  DEV_MODE). Sem OAuth/SMTP.
+- **Login:** **mockado** (usuário demo, sessão criada no cliente e guardada
+  no `localStorage`). `POST /api/dev/login` existe só com `DEV_MODE=1`, para
+  testes locais — o frontend não depende dela. Sem OAuth/SMTP.
 - **Deploy:** a cada **push** dispara a pipeline. **Só faz deploy se houver
   os secrets da Locaweb Cloud no GitHub.** O cliente gera as credenciais no
   painel Locaweb Cloud e cria os secrets no GitHub.
 - **Sentry:** backend `sentry-go` (DSN via `SENTRY_DSN`); frontend
-  `@sentry/react` (DSN via `NEXT_PUBLIC_SENTRY_DSN` / `VITE_...`).
+  `@sentry/react` (DSN via `VITE_SENTRY_DSN` — a stack é Vite, não Next).
 - **Cada participante configura o próprio Hermes/Telegram** no setup.
-- **Repo:** `github.com/fagnerlopes/kanban-dev-app` (private).
+- **Repo:** `github.com/fagnerlopes/kanban-dev-app` (público).
 
 ## Estado atual (atualizar a cada checkpoint)
 - [x] Cofounder instalado no projeto
@@ -70,39 +71,41 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - [x] Pipeline de deploy (GHA + Kamal, só com secrets)
 - [ ] Bugs plantados (após app funcional)
 
-## Estado ao dormir (2026-09-19 ~05:30)
+## Estado em 2026-09-19 (sessão de correção)
 
-- **Deploy `35423643294`** rodando em background (watch ativo). Provision está
-  **criando de verdade** (sem "skipped") após limpar o cache de estado `infra-*`.
-- **Causa raiz dos 3 deploys anteriores** (resolvido):
-  1. `POSTGRES_PASSWORD` com `-`/`_` quebrava o parse do pgx → senha alfanumérica
-     + `normalizeDatabaseURL` (commit `981c63a`).
-  2. IP do provision era de **outro projeto** (pool dinâmico do CloudStack).
-  3. **Cache de estado** do provision no Actions ficava "stale" após teardown →
-     provision "skipped" a criação e o deploy SSH em IPs que não existiam.
-     **Fix:** apagar caches `infra-*` do repo (`gh api DELETE .../actions/caches/<id>`).
-- **Checklist pra amanhã (se o deploy ainda não subiu):**
-  - [ ] `gh run view 35423643294` → se failure, `--log-failed`.
-  - [ ] Se "skipped" de novo: limpar caches `infra-*` e re-push.
-  - [ ] Se healthy: pegar `web_ip` de `provision-output.json` e abrir
-    `https://<web_ip>.nip.io`.
-  - [ ] Se app no ar: **plantar bugs** (backend migration syntax + frontend
-    runtime) → PR + deploy.
-  - [ ] Configurar **Sentry DSN** (hook já no código, DSN faltando).
-- **VMs:** as de `191.252.226.176`/`.198` são de OUTRO projeto (não mexer).
-- **CAUSA RAIZ #4 (encontrada):** o `web.env` na web VM tem `DATABASE_URL` com a
-  senha **literal `***`** (3-4 chars, 1 especial), não a senha alfanumérica de 40
-  chars. O `.kamal/secrets.preview` tem `DATABASE_URL=postgres://postgres:***@db:5432`
-  e `POSTGRES_PASSWORD=$POSTG...ORD` — o Kamal DEVE expandir `$POSTG...ORD` do env
-  do runner (que vem do secret), mas **não está expandindo** (a senha chega curta/errada
-  no `web.env`). Debug step no workflow imprime o **tamanho** do `POSTGRES_PASSWORD`
-  no runner (sem o valor) — checar no log do deploy `35424449601`:
-  - se `length: 40` → secret ok, problema na expansão do Kamal (ajustar `.kamal/secrets.preview`).
-  - se `length: 4` (ou outro) → **secret `POSTGRES_PASSWORD` está errado** no GitHub
-    (re-setar com a senha alfanumérica).
-- **PAT do gh:** token de admin (muitos escopos) — revisar para escopo mínimo
-  (`repo` + `write:packages` + `workflow`) quando possível.
+O app **está funcional**. O que estava quebrado e foi corrigido nesta sessão:
+
+1. **A interface retornava 404 em produção.** `config/deploy.preview.yml`
+   setava `DEV_MODE: "1"`, e no servidor Go essa flag significa "o Vite serve
+   o frontend" — ou seja, o Go parava de servir a SPA. `/up` e `/api/board`
+   continuavam saudáveis, então três deploys passaram "verdes" com o app
+   inutilizável. Ver [ADR-003](adr/003-spa-em-producao-e-dev-mode.md).
+2. **O login dependia de `POST /api/dev/login`**, rota que só existe com
+   `DEV_MODE=1` — foi o motivo de terem ligado a flag. Agora a sessão demo é
+   criada no cliente e não chama a rede.
+3. **nginx indevido na máquina de dev** (`hermes-lab`), instalado às 11:27 de
+   19/09 com um site `kanban-dev` fazendo proxy da porta 80 para o Vite.
+   Não faz parte do padrão Cofounder — quem termina TLS e ocupa a porta 80 é
+   o **kamal-proxy**, nas VMs de deploy. Serviço parado, desabilitado e site
+   removido (o pacote segue instalado, inativo).
+4. **Banco local com a imagem errada** (`postgres:17-alpine` em vez de
+   `supabase/postgres:17.6.1.171`) — sem as extensões do padrão e diferente
+   da produção. Container recriado; o antigo ficou preservado como
+   `kanban-db-old-alpine`.
+5. **Board transbordando** em 1280px (5 colunas de largura fixa cortavam a
+   primeira). As colunas agora dividem a largura e só rolam quando não cabem.
+
+**Correção de nota antiga:** as VMs `191.252.226.176` (web) e `191.252.226.198`
+(db) **são deste projeto**. A nota anterior dizia que eram de outro projeto —
+estava errada: os deploys mais recentes foram para elas e a API responde com o
+board deste app.
+
+**Verificado nesta sessão:** imagem do container rodando com `PORT=80`, servindo
+`/`, rotas da SPA, assets com `Content-Type` correto, `/api/board`, e
+`POST /api/dev/login` corretamente **ausente** (404) fora do modo dev.
 
 ## Próximo passo
-1. Confirmar o preview no ar (`https://<web_ip>.nip.io/up` → 200).
-2. Plantar os bugs (backend = sintaxe na migration; frontend = runtime no dnd).
+1. Confirmar a interface no ar: abrir `https://191.252.226.176.nip.io/` e
+   fazer o login demo (antes desta correção, essa URL devolvia 404).
+2. Configurar o `SENTRY_DSN` real e integrar o Sentry no frontend.
+3. Plantar os bugs (backend = sintaxe na migration; frontend = runtime no dnd).

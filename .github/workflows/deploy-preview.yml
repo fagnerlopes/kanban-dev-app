@@ -66,8 +66,6 @@ jobs:
             echo "DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres?sslmode=disable"
             echo "SENTRY_DSN=${SENTRY_DSN:-}"
           } > .kamal/secrets.preview
-          # confirma o TAMANHO da DSN montada (sem o valor)
-          echo "DATABASE_URL length: $(grep '^DATABASE_URL=' .kamal/secrets.preview | cut -c14- | wc -c)"
           # garante permissão restrita
           chmod 600 .kamal/secrets.preview
 

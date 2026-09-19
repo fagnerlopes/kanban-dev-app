@@ -1,6 +1,6 @@
 # 002 - Login mockado para a demo
 
-**Status:** Accepted
+**Status:** Accepted (atualizado por [ADR-003](003-spa-em-producao-e-dev-mode.md))
 
 ## Context
 
@@ -12,8 +12,10 @@ que testes e visual check alcancem rotas autenticadas.
 
 ## Decision
 
-- Autenticação **mockada**: um único usuário demo. O frontend guarda um
-  "token" em memória/localStorage após `POST /api/dev/login`.
+- Autenticação **mockada**: um único usuário demo. O frontend cria a
+  sessão demo localmente e a guarda no `localStorage`.
+  (Originalmente ela vinha de `POST /api/dev/login`; ver ADR-003 — essa
+  dependência derrubava o login em qualquer ambiente publicado.)
 - O endpoint de dev login só é registrado quando `DEV_MODE=1` (guarda na
   hora do registro da rota). Em produção `DEV_MODE` nunca é setado — a rota
   não existe.
