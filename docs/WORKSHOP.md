@@ -90,6 +90,16 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
     runtime) → PR + deploy.
   - [ ] Configurar **Sentry DSN** (hook já no código, DSN faltando).
 - **VMs:** as de `191.252.226.176`/`.198` são de OUTRO projeto (não mexer).
+- **CAUSA RAIZ #4 (encontrada):** o `web.env` na web VM tem `DATABASE_URL` com a
+  senha **literal `***`** (3-4 chars, 1 especial), não a senha alfanumérica de 40
+  chars. O `.kamal/secrets.preview` tem `DATABASE_URL=postgres://postgres:***@db:5432`
+  e `POSTGRES_PASSWORD=$POSTG...ORD` — o Kamal DEVE expandir `$POSTG...ORD` do env
+  do runner (que vem do secret), mas **não está expandindo** (a senha chega curta/errada
+  no `web.env`). Debug step no workflow imprime o **tamanho** do `POSTGRES_PASSWORD`
+  no runner (sem o valor) — checar no log do deploy `35424449601`:
+  - se `length: 40` → secret ok, problema na expansão do Kamal (ajustar `.kamal/secrets.preview`).
+  - se `length: 4` (ou outro) → **secret `POSTGRES_PASSWORD` está errado** no GitHub
+    (re-setar com a senha alfanumérica).
 - **PAT do gh:** token de admin (muitos escopos) — revisar para escopo mínimo
   (`repo` + `write:packages` + `workflow`) quando possível.
 
