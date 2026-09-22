@@ -21,7 +21,8 @@ Kanban board app: Go (stdlib + pgx, sqlc) backend + React SPA frontend (React Ro
 - Frontend build output goes to `frontend/build/client` (SPA mode) — the Dockerfile copies it to `frontend/dist`, a sibling of the binary under the image WORKDIR. `frontendDist` in `backend/cmd/server/main.go` must stay the literal `"frontend/dist"`.
 - Deploy is automatic: push to `master` triggers `.github/workflows/deploy-preview.yml` (provision + Kamal deploy of the root Dockerfile). It also accepts `workflow_dispatch`, which is what `make deploy` uses — a fresh fork has no commit to push.
 - Workshop onboarding lives in `README.md` and `Makefile` (`make setup|deploy|url|sentry|domain|domain-reset|status`); the bootstraps are `scripts/setup-secrets.sh` and `scripts/set-domain.sh`.
-- The public hostname comes from the `APP_DOMAIN` repository *variable* (comma-separated for apex+www), resolved in ERB in `config/deploy.preview.yml`, falling back to `<web_ip>.nip.io`. Never hardcode a domain there — every fork would request a certificate for a name its owner does not control. Guarded by `TestDeployConfigsKeepDomainConfigurable`. See `docs/adr/005-dominio-por-variavel-de-ambiente.md`.
+- The public hostname comes from the `APP_DOMAIN` repository *variable* (comma-separated for apex+www), resolved in ERB in `config/deploy.preview.yml`. Never hardcode a domain there — every fork would route a name its owner does not control.
+- `<web_ip>.nip.io` must stay in `proxy.hosts` **unconditionally**; `APP_DOMAIN` only appends. kamal-proxy routes strictly by `Host` and the deploy health check targets the container directly, so swapping nip.io for an unresolved domain leaves the app unreachable on every address **with a green deploy**. Guarded by `TestDeployConfigsKeepDomainConfigurable` and `TestDeployConfigsAlwaysRouteNipIo`. See `docs/adr/005-dominio-por-variavel-de-ambiente.md`.
 
 ## Conventions
 

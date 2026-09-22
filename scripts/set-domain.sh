@@ -4,8 +4,13 @@
 #
 # Grava a variavel de repositorio APP_DOMAIN e republica. Antes disso confere
 # se o DNS ja resolve para a VM: o certificado e emitido por desafio HTTP-01,
-# entao o nome precisa apontar para ca ANTES do deploy. Sem essa conferencia o
-# deploy falha na emissao do certificado e o erro nao diz o motivo real.
+# entao o nome so passa a funcionar depois que o DNS aponta para ca.
+#
+# Com o DNS errado o deploy NAO falha -- ele fica verde e o dominio simplesmente
+# nao responde (o health check fala direto com o container, nunca com o nome
+# publico). O endereco nip.io continua servindo o app em qualquer caso, entao
+# isso nao derruba nada; a conferencia existe para o participante nao ficar
+# achando que configurou e nao entender por que o dominio nao abre.
 #
 #   ./scripts/set-domain.sh                         # pergunta o dominio
 #   ./scripts/set-domain.sh kanbandev.exemplo.dev   # direto
@@ -21,6 +26,14 @@ die()  { printf '\n\033[31mErro:\033[0m %s\n' "$1" >&2; exit 1; }
 command -v gh >/dev/null 2>&1 || die "o GitHub CLI (gh) nao esta instalado."
 gh auth status >/dev/null 2>&1 || die "voce nao esta logado no GitHub. Rode: gh auth login"
 gh repo view >/dev/null 2>&1 || die "rode este script de dentro do seu fork ja clonado."
+
+# Raiz do repo, para o script funcionar chamado de qualquer subpasta.
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "isto nao e um repositorio git."
+
+# --no-print-directory: sem isso o make aninhado anuncia
+# "Entrando no diretorio /home/..." no meio da saida, o que parece um caminho
+# vazado quando na verdade e so ruido do make.
+redeploy() { exec make -C "$ROOT" --no-print-directory deploy; }
 
 # Resolve um nome para IPv4 usando a primeira ferramenta disponivel.
 # Imprime nada quando nao resolve; retorna 1 quando nao ha ferramenta nenhuma.
@@ -64,7 +77,7 @@ if [ "${1:-}" = "--reset" ]; then
     || warn "APP_DOMAIN ja nao existia"
   echo
   bold "Republicando para voltar ao endereco nip.io..."
-  exec make deploy
+  redeploy
 fi
 
 # --------------------------------------------------------------- dominio ---
@@ -131,8 +144,11 @@ if [ "$MISMATCH" -eq 1 ]; then
   (um registro para cada nome, se voce informou mais de um)
 
   A propagacao costuma levar de 1 a 30 minutos. O certificado TLS e emitido
-  por desafio HTTP-01: se o nome nao apontar para a VM na hora do deploy, a
-  emissao falha.
+  por desafio HTTP-01, entao o dominio so vai abrir depois que o DNS apontar
+  para ca -- o deploy passa normalmente, ele so nao responde nesse nome.
+
+  Seguir agora nao quebra nada: o endereco nip.io continua servindo o app.
+  Quando o DNS propagar, rode este comando de novo.
 
 EOF
   printf '  Continuar mesmo assim? [s/N]: '
@@ -148,4 +164,4 @@ gh variable set APP_DOMAIN --body "$DOMAIN"
 ok "APP_DOMAIN = $DOMAIN"
 echo
 bold "Republicando para o app passar a responder nesse endereco..."
-exec make deploy
+redeploy

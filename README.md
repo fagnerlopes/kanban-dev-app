@@ -306,8 +306,12 @@ você tem um domínio e quer usá-lo, são dois comandos.
 
 **A ordem importa.** O IP da sua VM só existe depois do primeiro deploy, e o
 certificado é emitido por **desafio HTTP-01** — o Let's Encrypt acessa o seu
-domínio para provar que ele é seu. Ou seja: o DNS precisa estar apontando para
-a VM **antes** de publicar, não depois.
+domínio para provar que ele é seu. Ou seja: o domínio só passa a abrir depois
+que o DNS estiver apontando para a VM.
+
+> **O endereço `nip.io` nunca para de funcionar.** Ele continua atendendo mesmo
+> com um domínio configurado. Então errar o domínio ou configurá-lo antes do DNS
+> propagar não derruba o seu app — o domínio só não abre ainda.
 
 **1.** Descubra o IP da sua VM:
 
@@ -375,10 +379,11 @@ redirecionamento.
 (Settings → Secrets and variables → Actions → aba **Variables**). Não é um
 secret: um domínio é público.
 
-O `config/deploy.preview.yml` lê essa variável na hora do deploy. Vazia, o app
-responde no `nip.io` da VM — que é o motivo de um fork recém-criado publicar sem
-nenhuma configuração de DNS. Nada de editar arquivo e comitar: você troca o
-domínio de um fork sem tocar no código.
+O `config/deploy.preview.yml` lê essa variável na hora do deploy e roteia **o
+`nip.io` sempre, mais o seu domínio quando houver**. É por isso que um fork
+recém-criado publica sem nenhuma configuração de DNS, e por isso que configurar
+um domínio errado não tira o app do ar. Nada de editar arquivo e comitar: você
+troca o domínio de um fork sem tocar no código.
 
 Detalhe: `APP_DOMAIN` vale para o ambiente *preview*. Se um dia você criar um
 ambiente de produção, ele usa o nome com sufixo (`APP_DOMAIN_PRODUCTION`),
@@ -436,7 +441,7 @@ make status         mostra secrets, domínio e últimos deploys
 | Erros do **servidor** chegam ao Sentry, os do **navegador** não | Bloqueador de anúncios barrando `*.ingest.sentry.io` | Desative o bloqueador para o domínio do app, ou use uma janela anônima |
 | Nenhum erro de navegador chega, sem bloqueador ativo | O frontend ainda não foi integrado | Faça o **passo 6.3** |
 | A Issue mostra `a.b is not a function` em `index-4f2a.js:1:20481` | Source maps não estão sendo lidos | **Sentry → Settings → Security & Privacy → Allow JavaScript source fetching** |
-| O deploy falha ao emitir o certificado do meu domínio | O DNS não aponta para a VM (ou ainda não propagou) | `make url` para ver o IP, confira o registro A, espere e rode `make domain` de novo |
+| Configurei o domínio, o deploy passou, mas o domínio não abre | O DNS não aponta para a VM (ou ainda não propagou) — o deploy passa mesmo assim | `make url` para ver o IP, confira o registro A, espere propagar. Enquanto isso o endereço `nip.io` continua funcionando |
 | Configurei o domínio e quero desfazer | — | `make domain-reset` |
 | Quero apagar tudo da nuvem | — | Aba **Actions** → **Teardown Preview** → **Run workflow** |
 

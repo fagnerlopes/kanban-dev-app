@@ -2,16 +2,21 @@
   # Public hostname(s) of the app.
   #
   # APP_DOMAIN is a GitHub *repository variable* (not a secret -- a domain is
-  # public), passed through by the deploy workflow. When it is empty, the app
-  # answers on the VM's nip.io host, so a fresh fork deploys with no DNS setup
-  # at all. `make domain` sets it after checking that the DNS already points
-  # here -- Let's Encrypt issues the certificate via HTTP-01, so the name must
-  # resolve to this VM *before* the deploy, not after.
+  # public), passed through by the deploy workflow. Comma-separated to cover an
+  # apex plus its www ("ex.com.br,www.ex.com.br"); the first entry is canonical
+  # and becomes BASE_URL.
   #
-  # Comma-separated to cover an apex plus its www ("ex.com.br,www.ex.com.br").
-  # The first entry is canonical and becomes BASE_URL.
-  app_hosts = ENV['APP_DOMAIN'].to_s.split(',').map(&:strip).reject(&:empty?)
-  app_hosts = ["#{ENV['INFRA_WEB_IP']}.nip.io"] if app_hosts.empty?
+  # The nip.io host is ALWAYS routed, custom domain or not. kamal-proxy routes
+  # strictly by Host header and only issues certificates for the hosts listed
+  # here, so a config that replaced nip.io with the custom domain would take the
+  # app offline the moment someone set APP_DOMAIN with the DNS not ready -- and
+  # the deploy would still go GREEN, because the health check talks to the
+  # container directly and never exercises the public hostname. Keeping nip.io
+  # means a wrong or unpropagated domain is a non-event: the IP address URL
+  # still serves the app.
+  nip_host    = "#{ENV['INFRA_WEB_IP']}.nip.io"
+  app_domains = ENV['APP_DOMAIN'].to_s.split(',').map(&:strip).reject(&:empty?)
+  app_hosts   = ([nip_host] + app_domains).uniq
 %>
 servers:
   web:
@@ -21,7 +26,7 @@ servers:
 env:
   clear:
     APP_ENV: preview
-    BASE_URL: https://<%= app_hosts.first %> # nip.io, or APP_DOMAIN when set
+    BASE_URL: https://<%= app_domains.first || nip_host %> # APP_DOMAIN when set, else nip.io
     # DEV_MODE is deliberately absent. It is a LOCAL-ONLY flag: it registers the
     # dev login route and tells the Go server that Vite -- not Go -- serves the
     # SPA. Setting it here makes every page return 404.

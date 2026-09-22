@@ -15,10 +15,14 @@ produção.
 
 - **1 web VM** (plan `small`, 20 GB disk) — roda a imagem única do repo
   (Go server + SPA embutida), escuta na porta 80, health check em `GET /up`.
-  URL: `https://<web_ip>.nip.io`, ou o domínio de `APP_DOMAIN` quando definida
-  (TLS Let's Encrypt via kamal-proxy). O certificado é emitido por desafio
-  **HTTP-01**: o domínio precisa resolver para a VM **antes** do deploy — é o
-  que `make domain` confere.
+  URL: `https://<web_ip>.nip.io` — **sempre roteado** — mais o domínio de
+  `APP_DOMAIN` quando definida (TLS Let's Encrypt via kamal-proxy). O
+  certificado é emitido por desafio **HTTP-01**, então o domínio só atende
+  depois que o DNS aponta para a VM; `make domain` confere isso antes.
+  Atenção: o kamal-proxy roteia por cabeçalho `Host` e o health check do deploy
+  fala direto com o container, então um domínio mal configurado **não** reprova
+  o deploy — ele passa verde e o nome apenas não responde. É por isso que o
+  `nip.io` nunca sai da lista (`TestDeployConfigsAlwaysRouteNipIo`).
 - **1 accessory `db`** (plan `small`, 20 GB disk) — Postgres
   `supabase/postgres:17.6.1.171`. Em rede interna CloudStack, hostname
   determinístico `db:5432` (DNS interno). Data em `/data/pgdata`.
@@ -44,7 +48,7 @@ Os quatro primeiros são criados de uma vez por `make setup`
 
 | Variable | Origem | Uso |
 |----------|--------|-----|
-| `APP_DOMAIN` | `make domain` | hostname público do app. Vazia = `<web_ip>.nip.io`. Aceita lista separada por vírgula (apex + www); o primeiro item é canônico e vira `BASE_URL` |
+| `APP_DOMAIN` | `make domain` | domínio(s) **adicionais** do app — o `nip.io` é roteado de qualquer forma. Aceita lista separada por vírgula (apex + www); o primeiro item é canônico e vira `BASE_URL` |
 
 É **variable**, não secret: domínio é informação pública, e como secret ficaria
 ilegível no painel. Resolvida em ERB no `config/deploy.preview.yml`. Ver

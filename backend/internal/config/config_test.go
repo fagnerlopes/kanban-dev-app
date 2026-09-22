@@ -49,18 +49,40 @@ func TestDeployConfigsSetAppEnv(t *testing.T) {
 	})
 }
 
-// The public hostname must stay driven by the APP_DOMAIN repository variable,
-// with the VM's nip.io as the fallback. Hardcoding a domain here works for
-// whoever typed it and breaks every fork: Let's Encrypt would be asked for a
-// certificate covering a name the participant does not own, and the deploy
-// fails at certificate issuance with an error that never names the cause.
+// The public hostname must stay driven by the APP_DOMAIN repository variable.
+// Hardcoding a domain works for whoever typed it and breaks every fork, which
+// would route a name its owner does not control.
 func TestDeployConfigsKeepDomainConfigurable(t *testing.T) {
 	forEachEnvConfig(t, func(t *testing.T, path, body string) {
 		if !strings.Contains(body, "APP_DOMAIN") {
 			t.Errorf("%s does not read APP_DOMAIN — a fork could not set its own domain", path)
 		}
+	})
+}
+
+// The nip.io host must be routed unconditionally, not only when APP_DOMAIN is
+// empty. kamal-proxy routes strictly by Host header, so a config that swapped
+// nip.io for the custom domain takes the app offline the moment the domain is
+// set before its DNS is ready — and the deploy still reports success, because
+// the health check talks to the container directly and never exercises the
+// public hostname. Verified the hard way: a green deploy left the app
+// unreachable on every address.
+func TestDeployConfigsAlwaysRouteNipIo(t *testing.T) {
+	forEachEnvConfig(t, func(t *testing.T, path, body string) {
 		if !strings.Contains(body, "nip.io") {
-			t.Errorf("%s has no nip.io fallback — a fork without a domain would have no hostname", path)
+			t.Fatalf("%s never mentions nip.io — the IP-address URL would stop working", path)
+		}
+		// The nip.io host must not sit behind an "only if APP_DOMAIN is empty"
+		// branch. Such a branch reads as an assignment guarded by `if`/`unless`
+		// on the same line as the nip.io literal.
+		for i, line := range strings.Split(body, "\n") {
+			if !strings.Contains(line, "nip.io") {
+				continue
+			}
+			if strings.Contains(line, " if ") || strings.Contains(line, " unless ") {
+				t.Errorf("%s:%d makes the nip.io host conditional: %s",
+					path, i+1, strings.TrimSpace(line))
+			}
 		}
 	})
 }

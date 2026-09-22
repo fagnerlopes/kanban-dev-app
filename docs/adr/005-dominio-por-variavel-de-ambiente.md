@@ -16,9 +16,16 @@ um nome que o participante não controla. O deploy falha na emissão, e a
 mensagem de erro não diz que a causa é o DNS.
 
 Há ainda uma ordem que não é óbvia: o IP da VM só existe **depois** do primeiro
-deploy, e o certificado é emitido por desafio HTTP-01, que exige o domínio já
-resolvendo para a VM **antes** do deploy. Quem tenta configurar na ordem
-intuitiva (domínio primeiro) bate num deploy vermelho sem explicação.
+deploy, e o certificado é emitido por desafio HTTP-01, então o domínio só passa
+a atender depois que o DNS aponta para a VM.
+
+A primeira versão desta implementação **substituía** o host `nip.io` pelo
+domínio. O efeito foi descoberto em teste, não em teoria: configurado um domínio
+cujo DNS não existia, o **deploy ficou verde** e o app ficou inacessível em
+todos os endereços. O kamal-proxy roteia estritamente por cabeçalho `Host` e o
+health check do deploy fala direto com o container
+(`--target=<id>:80`), nunca com o nome público — então nada no pipeline percebe
+que o app deixou de ser alcançável.
 
 ## Decision
 
@@ -26,19 +33,23 @@ O hostname público vem de `APP_DOMAIN`, uma **variável de repositório** do
 GitHub (não um secret — domínio é informação pública), lida pelo workflow e
 resolvida em ERB no `config/deploy.preview.yml`:
 
-- vazia → `<web_ip>.nip.io`, de modo que um fork publica sem nenhuma
-  configuração de DNS;
-- preenchida → o domínio, e `BASE_URL` acompanha;
+- o host `<web_ip>.nip.io` é roteado **sempre**, com ou sem domínio;
+- `APP_DOMAIN` **acrescenta** hosts, nunca substitui;
+- `BASE_URL` é o primeiro domínio de `APP_DOMAIN`, ou o `nip.io` quando vazia;
 - aceita lista separada por vírgula (`exemplo.com.br,www.exemplo.com.br`), com
   o primeiro item como canônico.
+
+Manter o `nip.io` é o que transforma um domínio errado num não-evento: o app
+segue acessível pelo endereço do IP, e o participante corrige sem pressa.
 
 `make domain` encapsula o procedimento: normaliza o que foi colado (tira
 `https://` e barra final), lê o IP da VM do último deploy, **confere se o DNS já
 resolve para ele** e, quando não resolve, imprime o registro A exato que falta —
 pedindo confirmação antes de seguir. `make domain-reset` volta ao `nip.io`.
 
-`TestDeployConfigsKeepDomainConfigurable` garante que os configs continuem
-lendo `APP_DOMAIN` e mantendo o fallback `nip.io`.
+Dois testes guardam isso: `TestDeployConfigsKeepDomainConfigurable` (os configs
+continuam lendo `APP_DOMAIN`) e `TestDeployConfigsAlwaysRouteNipIo` (o host
+`nip.io` não volta a ficar atrás de um `if`).
 
 ## Rationale
 
@@ -47,10 +58,10 @@ forks**. Tudo o mais que difere (chaves da nuvem, senha do banco, DSN) já vive
 fora do código. O domínio é da mesma natureza, e tratá-lo como código obrigaria
 cada participante a fazer um commit para algo que não é mudança de software.
 
-A conferência de DNS existe porque o modo de falhar é péssimo: o deploy quebra
-num passo que fala de certificado, não de DNS, e o participante não tem como
-ligar uma coisa à outra no meio do workshop. Verificar antes transforma isso
-numa instrução acionável.
+A conferência de DNS existe porque o modo de falhar é mudo: o deploy passa,
+nenhum log menciona DNS, e o domínio simplesmente não abre. Verificar antes
+transforma isso numa instrução acionável — e roteando o `nip.io` sempre, o
+participante pode até ignorar o aviso sem consequência.
 
 ## Trade-offs
 
@@ -59,6 +70,7 @@ numa instrução acionável.
 - Trocar ou remover o domínio não gera commit.
 - O erro mais provável (DNS não propagado) é detectado antes do deploy.
 - Nenhum domínio fica embutido no molde, então nenhum fork herda um nome alheio.
+- Configurar um domínio errado não tira o app do ar.
 
 **Cons:**
 - O hostname deixa de ser legível só olhando o repositório — é preciso
