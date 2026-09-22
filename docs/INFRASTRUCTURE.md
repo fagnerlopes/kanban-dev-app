@@ -64,6 +64,12 @@ Os quatro primeiros são criados de uma vez por `make setup`
 - **`APP_ENV`** (`env.clear` de cada `config/deploy.<env>.yml`) é o rótulo de
   ambiente que o Sentry usa para agrupar as issues. Coberto por
   `TestDeployConfigsSetAppEnv`.
+- **Source maps** saem do build (`build.sourcemap: true` em
+  `frontend/vite.config.ts`), são servidos como arquivos comuns por
+  `RegisterFrontend` e o Sentry os busca pela URL do `sourceMappingURL`. Não há
+  `SENTRY_AUTH_TOKEN` nem etapa de upload — e não deve haver: esse token seria
+  necessário no **build da imagem**, repetindo a armadilha do `VITE_SENTRY_DSN`.
+  Guardado por `TestViteBuildEmitsSourceMaps` e `TestFrontendServesSourceMaps`.
 - Migrations rodam **no startup do container** (web VM única, sem race).
 - **Sem reverse proxy próprio.** Quem termina TLS e roteia a porta 80/443 é o
   **kamal-proxy**, provisionado pelo Kamal na web VM. Instalar nginx (ou

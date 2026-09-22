@@ -16,6 +16,9 @@ npm-debug.log*
 # Frontend build
 frontend/build/
 frontend/.react-router/
+# Only the Dockerfile creates this (build/client copied next to the binary);
+# locally it shows up when serving a real build through the Go server.
+frontend/dist/
 
 # e2e screenshots (local evidence, not committed)
 e2e/*.png

@@ -29,7 +29,9 @@ Tracker de desenvolvimento. Atualizado a cada sessão.
 | `workflow_dispatch` no deploy | Done | fork novo não tem push para disparar a pipeline |
 | Backend: `GET /api/config` (DSN em runtime) | Done | substitui `VITE_SENTRY_DSN` — ver [ADR-004](adr/004-sentry-dsn-em-runtime.md) |
 | Backend: `APP_ENV` como ambiente do Sentry | Done | antes ia `BASE_URL`, o que virava URL no facet do Sentry |
-| Sentry: integração no frontend | Pending | **de propósito** — é a feature que o Hermes cria ao vivo (`@sentry/react` lendo `/api/config`) |
+| Source maps servidos pelo app (Sentry lê pela URL) | Done | `build.sourcemap: true` no Vite; sem `SENTRY_AUTH_TOKEN`, sem upload. Guardado por `TestViteBuildEmitsSourceMaps` e `TestFrontendServesSourceMaps` |
+| README: aviso de bloqueador de anúncios | Done | ad-blocker derruba só os eventos de navegador — sintoma confuso |
+| Sentry: integração no frontend | Pending | **de propósito** — é a feature que o Hermes cria ao vivo (`@sentry/react` lendo `/api/config`, **sem o wizard**) |
 | Sentry: configurar DSN real | Pending | secret `SENTRY_DSN` ainda não existe no repo original |
 | Bugs plantados (backend migration + frontend) | Pending | só depois do app 100% funcional — ver `WORKSHOP.md` |
 

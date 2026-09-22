@@ -28,7 +28,8 @@ func buildDist(t *testing.T, shellName string) string {
 	if shellName != "index.html" {
 		write(shellName, "<html>shell</html>")
 	}
-	write("assets/app-abc123.js", "console.log('app')")
+	write("assets/app-abc123.js", "console.log('app')\n//# sourceMappingURL=app-abc123.js.map")
+	write("assets/app-abc123.js.map", `{"version":3,"sources":["../app/root.tsx"]}`)
 	write("assets/app-abc123.css", "body{}")
 	write("about/index.html", "<html>about</html>")
 	return dir
@@ -74,6 +75,22 @@ func TestFrontendServesAssetsWithCorrectContentType(t *testing.T) {
 		if got := rec.Header().Get("Content-Type"); !strings.Contains(got, wantType) {
 			t.Errorf("GET %s Content-Type = %q, want it to contain %q", path, got, wantType)
 		}
+	}
+}
+
+// Sentry fetches the .map from the URL in the bundle's sourceMappingURL
+// comment. If the SPA shell were served instead (HTTP 200 with HTML), Sentry
+// would fail to parse it and every browser stack trace would stay minified --
+// silently, with the deploy green.
+func TestFrontendServesSourceMaps(t *testing.T) {
+	dir := buildDist(t, "index.html")
+	rec := serve(t, dir, "/assets/app-abc123.js.map")
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /assets/app-abc123.js.map = %d, want 200", rec.Code)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, `"version":3`) {
+		t.Fatalf("body = %q, want the source map, not the SPA shell", body)
 	}
 }
 
@@ -130,6 +147,21 @@ func TestFrontendDoesNotSwallowAPIPaths(t *testing.T) {
 		if code := serve(t, dir, path).Code; code != http.StatusNotFound {
 			t.Errorf("GET %s = %d, want 404", path, code)
 		}
+	}
+}
+
+// Serving .map files is only half of it — the build has to emit them. Turning
+// build.sourcemap off would cost nothing visible: the app still works, the
+// deploy stays green, and only the Sentry stack traces quietly go back to
+// being minified.
+func TestViteBuildEmitsSourceMaps(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "frontend", "vite.config.ts")
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	if !strings.Contains(string(body), "sourcemap: true") {
+		t.Errorf("%s does not set build.sourcemap: true — browser stack traces in Sentry would stay minified", path)
 	}
 }
 

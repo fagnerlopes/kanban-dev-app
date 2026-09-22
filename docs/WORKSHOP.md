@@ -54,6 +54,17 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
   Kamal só entrega secrets em runtime: o secret chegaria vazio no bundle com a
   pipeline verde. Um único secret atende os dois lados. Ver
   [ADR-004](adr/004-sentry-dsn-em-runtime.md).
+- **Nada de wizard do Sentry.** `npx @sentry/wizard` exige
+  `SENTRY_AUTH_TOKEN` no build da imagem, grava o DSN no código (cada
+  participante tem o seu) e é interativo. O Hermes integra na mão — o texto do
+  pedido está no README, passo 6.3.
+- **Source maps** vêm do build (`build.sourcemap: true`) e são servidos pelo
+  próprio app; o Sentry os busca pela URL. Sem eles a Issue de frontend chega
+  minificada e não dá para pedir correção ao Hermes.
+- **Avisar a turma para desligar o bloqueador de anúncios.** Ele barra
+  `*.ingest.sentry.io` e derruba **só** os eventos de navegador — os do
+  servidor continuam chegando, o que faz o sintoma parecer um bug da
+  integração.
 - **Cada participante configura o próprio Hermes/Telegram** no setup.
 - **Repo:** `github.com/fagnerlopes/kanban-dev-app` (público).
 

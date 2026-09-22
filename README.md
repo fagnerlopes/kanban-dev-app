@@ -218,14 +218,66 @@ Pronto: **o backend já está reportando erros.** Não precisa mexer em código.
 Esta parte é de propósito uma tarefa para o agente — é a demonstração de que o
 Hermes constrói uma feature nova, não só conserta bug. Mande pelo **Telegram**:
 
-> Integre o Sentry no frontend do app. O DSN não deve ser lido de uma variável
-> `VITE_*`: o backend já expõe `GET /api/config`, que devolve `sentry_dsn`,
-> `environment` e `release`. Inicialize o `@sentry/react` a partir dessa
-> resposta, ignore quando o DSN vier vazio, e reporte também os erros que caem
-> no `ErrorBoundary`. Rode os testes, abra o PR e publique.
+> Integre o Sentry no frontend do app. **Não use o wizard do Sentry** e não leia
+> o DSN de uma variável `VITE_*`: o backend já expõe `GET /api/config`, que
+> devolve `sentry_dsn`, `environment` e `release`. Instale o `@sentry/react`,
+> inicialize a partir dessa resposta, não inicialize quando o DSN vier vazio, e
+> reporte também os erros que caem no `ErrorBoundary` do `root.tsx`. Os source
+> maps já estão configurados — não mexa neles. Rode os testes, abra o PR e
+> publique.
 
 Quando ele terminar, confira em <https://sentry.io> que o projeto está
 recebendo eventos.
+
+<details>
+<summary>Por que não usar o wizard do Sentry (<code>npx @sentry/wizard</code>)?</summary>
+
+O wizard é ótimo num projeto pessoal, e errado aqui, por três motivos:
+
+1. **Ele exige um `SENTRY_AUTH_TOKEN`** para subir os source maps — e esse token
+   precisaria estar disponível **durante o build da imagem Docker**. É
+   exatamente a mesma armadilha do `VITE_SENTRY_DSN`, só que com um secret a
+   mais por participante. Aqui os source maps são resolvidos sem token nenhum
+   (veja abaixo).
+2. **Ele grava o DSN direto no código-fonte.** Num projeto só seu, tudo bem —
+   o DSN é público mesmo. Mas cada participante tem o **seu** DSN: hardcoded,
+   todo fork precisaria editar código antes de publicar.
+3. **Ele é interativo** — abre o navegador para login no Sentry. Não funciona
+   num fluxo por Telegram.
+
+</details>
+
+### 6.4 — Erros legíveis: os source maps
+
+Isto **já está pronto**, não é um passo seu — mas vale saber por que funciona.
+
+O JavaScript que roda no navegador é minificado. Sem ajuda, uma Issue do Sentry
+diria `a.b is not a function` em `index-4f2a.js:1:20481` — inútil para pedir ao
+Hermes "corrige isso". O build gera os **source maps** junto dos bundles, o
+servidor Go os entrega publicamente, e o Sentry os busca sozinho pela URL. O
+resultado é a Issue apontando o arquivo `.tsx`, a linha e o trecho de código
+original.
+
+Nenhum token, nenhum passo de upload, nenhum secret a mais. O preço é que o
+código-fonte do frontend fica legível a partir do app publicado — o que aqui não
+custa nada, já que o repositório é público.
+
+> Se as stack traces continuarem minificadas, confira em **Sentry → Settings →
+> Security & Privacy** se **"Allow JavaScript source fetching"** está ligado
+> (vem ligado por padrão).
+
+### ⚠️ Desligue o bloqueador de anúncios
+
+**uBlock Origin, AdBlock, Brave Shields e o DNS da sua empresa bloqueiam
+`*.ingest.sentry.io`.** Com qualquer um deles ativo, os erros de **navegador**
+simplesmente não saem da sua máquina: o Sentry fica vazio, sem nenhum aviso, e
+parece que a integração falhou.
+
+Os erros de **servidor** continuam chegando normalmente — eles saem da VM, não
+do seu navegador. É justamente isso que torna o sintoma confuso.
+
+Antes do passo 7, desative o bloqueador para o domínio do seu app
+(`https://<ip>.nip.io`) ou abra o app numa janela anônima sem extensões.
 
 <details>
 <summary>Por que não usar <code>VITE_SENTRY_DSN</code>?</summary>
@@ -290,7 +342,9 @@ make status   mostra os secrets e os últimos deploys
 | A pipeline falha logo no início com erro de credencial | Chave SSH gravada errada (faltou uma linha ao copiar) | `make setup --force` |
 | O site não abre, mas `make url` mostra um endereço | O certificado TLS ainda está sendo emitido | Espere 1–2 minutos e recarregue |
 | O app abre, mas o Sentry não recebe nada | O DSN foi gravado sem republicar | `make deploy` |
-| Erros do navegador não aparecem no Sentry | O frontend ainda não foi integrado | Faça o **passo 6.3** |
+| Erros do **servidor** chegam ao Sentry, os do **navegador** não | Bloqueador de anúncios barrando `*.ingest.sentry.io` | Desative o bloqueador para o domínio do app, ou use uma janela anônima |
+| Nenhum erro de navegador chega, sem bloqueador ativo | O frontend ainda não foi integrado | Faça o **passo 6.3** |
+| A Issue mostra `a.b is not a function` em `index-4f2a.js:1:20481` | Source maps não estão sendo lidos | **Sentry → Settings → Security & Privacy → Allow JavaScript source fetching** |
 | Quero apagar tudo da nuvem | — | Aba **Actions** → **Teardown Preview** → **Run workflow** |
 
 Travou em algo que não está na tabela? **Pergunte ao Hermes pelo Telegram** —
