@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { KanbanSquare, Loader2, Moon, Sun } from "lucide-react";
+import { MadeWith } from "~/components/made-with";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/hooks/use-auth";
 import { useTheme } from "~/hooks/use-theme";
@@ -89,6 +90,10 @@ export default function Login() {
           </p>
         </div>
       </div>
+
+      <footer className="px-6 pb-6 text-center">
+        <MadeWith />
+      </footer>
     </main>
   );
 }

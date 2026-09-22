@@ -84,6 +84,7 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - [x] Commit + push GitHub (master 5417897)
 - [x] Dockerfile multi-stage (frontend + backend)
 - [x] Pipeline de deploy (GHA + Kamal, só com secrets)
+- [x] Crédito "Feito com Cofounder e Locaweb Cloud" (login + board)
 - [ ] Bugs plantados (após app funcional)
 
 ## Estado em 2026-09-19 (sessão de correção)

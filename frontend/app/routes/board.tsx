@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { KanbanSquare, LogOut, Moon, Sun } from "lucide-react";
 import { Column } from "~/components/column";
+import { MadeWith } from "~/components/made-with";
 import { useAuth } from "~/hooks/use-auth";
 import { useTheme } from "~/hooks/use-theme";
 import {
@@ -135,6 +136,11 @@ export default function Board() {
           ))}
         </div>
       </div>
+
+      {/* Mirrors the header's treatment so the board sits between two rails. */}
+      <footer className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)]/80 px-6 py-2 backdrop-blur">
+        <MadeWith />
+      </footer>
     </main>
   );
 }
