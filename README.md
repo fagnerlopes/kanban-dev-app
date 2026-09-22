@@ -1,0 +1,349 @@
+# Kanban Dev Flow — workshop de ChatOps com o Hermes Agent
+
+Um quadro Kanban de verdade, publicado na sua própria conta da **Locaweb Cloud**,
+monitorado pelo **Sentry** — e consertado pelo **Hermes Agent** através do
+**Telegram**.
+
+Você não vai escrever código neste workshop. Você vai **forkar**, **publicar**,
+**ligar o Sentry** e, quando os erros aparecerem, **pedir pelo Telegram** para o
+Hermes investigar e corrigir. Ele abre o Pull Request e publica a correção.
+
+O passo a passo abaixo leva cerca de **30 minutos** até o app estar no ar com o
+Sentry ligado.
+
+---
+
+## O que você vai colocar no ar
+
+```
+        Você  ──►  https://<ip>.nip.io          (TLS automático, Let's Encrypt)
+                          │
+                          ▼
+        ┌─────────────────────────────┐        ┌──────────────────────────┐
+        │  VM 1 · web                 │        │  VM 2 · db               │
+        │  Go + SPA React, porta 80   │───────►│  PostgreSQL 17           │
+        │  health check em /up        │        │  dados em /data/pgdata   │
+        └─────────────────────────────┘        └──────────────────────────┘
+                          │
+                          └──────────────►  Sentry (SaaS)  ── erros do servidor
+                                                           └─ erros do navegador
+```
+
+**Duas VMs**, provisionadas automaticamente pela pipeline do GitHub Actions. Você
+não abre o painel da nuvem para criar nada — só para pegar duas chaves de API.
+
+| Componente | Tecnologia |
+|---|---|
+| Backend | Go (stdlib `net/http`, pgx, sqlc) |
+| Frontend | React + React Router (SPA) + Tailwind + shadcn |
+| Banco | PostgreSQL 17 (`supabase/postgres`) |
+| Deploy | GitHub Actions + [Kamal](https://kamal-deploy.org/) na Locaweb Cloud |
+| Erros | Sentry (plano gratuito) |
+
+---
+
+## Antes de começar
+
+Você precisa de:
+
+- Uma conta no **GitHub** com o [`gh` CLI](https://cli.github.com/) instalado e
+  autenticado (`gh auth login`).
+- Uma conta na **[Locaweb Cloud](https://www.locaweb.com.br/locaweb-cloud/)**
+  (se não tiver, clique em **Contratar**).
+- O **Hermes Agent** rodando e conectado ao seu Telegram (feito na primeira
+  parte do workshop).
+- `git`, `make` e `ssh-keygen` — já vêm em Linux e macOS; no Windows, use o
+  **Git Bash** ou o **WSL**.
+
+Uma conta gratuita no **Sentry** será criada no passo 5 — não precisa ter antes.
+
+---
+
+## Passo 1 — Faça o fork
+
+Abra <https://github.com/fagnerlopes/kanban-dev-app> e clique em **Fork**
+(canto superior direito) → **Create fork**.
+
+Agora clone o **seu** fork e entre na pasta:
+
+```bash
+gh repo clone SEU-USUARIO/kanban-dev-app
+cd kanban-dev-app
+```
+
+> Troque `SEU-USUARIO` pelo seu usuário do GitHub.
+
+---
+
+## Passo 2 — Ligue o GitHub Actions no fork
+
+O GitHub **desativa** as automações em forks por segurança. Ligue uma vez:
+
+1. Abra a aba **Actions** do seu fork.
+2. Clique no botão verde
+   **"I understand my workflows, go ahead and enable them"**.
+
+Sem isso, nada publica — e o GitHub não avisa o porquê.
+
+---
+
+## Passo 3 — Pegue as chaves da Locaweb Cloud
+
+1. Acesse <https://painel-cloud.locaweb.com.br/>.
+2. Vá em **Contas** → *(sua conta)* → **Visualizar usuários** → *(seu usuário)*.
+3. **Espere até 60 segundos.** As chaves carregam de forma assíncrona e
+   aparecem abaixo da data em **"Criado"**.
+4. Se não aparecerem, clique no ícone **"Gerar novas chaves"** no canto
+   superior direito e espere de novo.
+
+Deixe a página aberta — você vai copiar **Chave da API** e **Chave secreta** no
+próximo passo.
+
+---
+
+## Passo 4 — Crie os secrets
+
+Um comando resolve tudo:
+
+```bash
+make setup
+```
+
+O script vai:
+
+- gerar uma **chave SSH** exclusiva deste projeto (`~/.ssh/kanban-dev-app`);
+- sortear uma **senha do Postgres** (ela nunca aparece na tela);
+- pedir que você **cole as duas chaves** da Locaweb Cloud — a digitação fica
+  invisível, como numa senha;
+- perguntar pelo **DSN do Sentry**, que você ainda não tem. **Aperte ENTER e
+  pule** — voltamos nele no passo 6.
+
+No fim ele lista o que foi criado:
+
+| Secret | De onde vem |
+|---|---|
+| `CLOUDSTACK_API_KEY` | painel da Locaweb Cloud (você cola) |
+| `CLOUDSTACK_SECRET_KEY` | painel da Locaweb Cloud (você cola) |
+| `SSH_PRIVATE_KEY` | gerado pelo `make setup` |
+| `POSTGRES_PASSWORD` | gerado pelo `make setup` |
+| `SENTRY_DSN` | painel do Sentry (passo 6) — opcional |
+
+O comando é seguro de repetir: ele **não sobrescreve** nada que já exista. Para
+recriar tudo do zero, use `make setup --force`.
+
+<details>
+<summary>Prefere fazer na mão, pelo site do GitHub?</summary>
+
+Vá em **Settings → Secrets and variables → Actions → New repository secret** e
+crie os quatro secrets da tabela acima. Para o `SSH_PRIVATE_KEY`, gere a chave
+antes e cole o conteúdo do arquivo **privado** (o sem `.pub`):
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/kanban-dev-app -N "" -C "kanban-dev-app-deploy"
+cat ~/.ssh/kanban-dev-app
+```
+</details>
+
+---
+
+## Passo 5 — Publique
+
+```bash
+make deploy
+```
+
+O comando dispara a pipeline e acompanha ao vivo. Nos bastidores ela:
+
+1. provisiona as **duas VMs**, rede, disco, IP público e firewall;
+2. constrói a imagem Docker (React + Go numa imagem só);
+3. sobe o Postgres, roda as migrations e publica o app;
+4. emite o certificado TLS via Let's Encrypt.
+
+A **primeira vez leva de 5 a 10 minutos** (é quando a infraestrutura nasce). As
+publicações seguintes levam cerca de 2 minutos.
+
+Terminou, ele imprime o endereço:
+
+```
+  Seu app esta no ar:  https://191.252.226.176.nip.io
+```
+
+Abra no navegador e faça o **login demo**. A qualquer momento você recupera o
+endereço com:
+
+```bash
+make url
+```
+
+> **O que é `nip.io`?** Um serviço de DNS que transforma qualquer IP num
+> domínio. `191.252.226.176.nip.io` aponta para `191.252.226.176`. É o que
+> permite ter HTTPS sem você comprar um domínio.
+
+---
+
+## Passo 6 — Integre o Sentry
+
+O Sentry é quem vai **capturar os erros automaticamente** e virar a fonte das
+conversas com o Hermes no Telegram.
+
+### 6.1 — Crie a conta e o projeto
+
+1. Crie a conta gratuita em <https://sentry.io/signup/>.
+2. Crie um projeto:
+   - **Platform:** escolha **Go**
+   - **Alert frequency:** *Alert me on every new issue*
+   - **Project name:** `kanban-dev-app`
+3. Pule a tela de instruções de instalação — o código já está pronto.
+4. Copie o **DSN** em
+   **Settings → Projects → kanban-dev-app → Client Keys (DSN)**.
+   Ele se parece com `https://abc123@o456.ingest.us.sentry.io/789`.
+
+> **Um projeto só, para servidor e navegador.** Este app envia os dois tipos de
+> erro para o mesmo DSN. Você filtra depois pela tag `environment` dentro do
+> Sentry.
+
+### 6.2 — Grave o DSN e republique
+
+```bash
+make sentry
+```
+
+Cole o DSN quando pedir. O comando grava o secret **e já republica** — porque o
+app só passa a enxergar o DSN depois de uma nova publicação.
+
+Pronto: **o backend já está reportando erros.** Não precisa mexer em código.
+
+### 6.3 — Peça ao Hermes para ligar o Sentry no frontend
+
+Esta parte é de propósito uma tarefa para o agente — é a demonstração de que o
+Hermes constrói uma feature nova, não só conserta bug. Mande pelo **Telegram**:
+
+> Integre o Sentry no frontend do app. O DSN não deve ser lido de uma variável
+> `VITE_*`: o backend já expõe `GET /api/config`, que devolve `sentry_dsn`,
+> `environment` e `release`. Inicialize o `@sentry/react` a partir dessa
+> resposta, ignore quando o DSN vier vazio, e reporte também os erros que caem
+> no `ErrorBoundary`. Rode os testes, abra o PR e publique.
+
+Quando ele terminar, confira em <https://sentry.io> que o projeto está
+recebendo eventos.
+
+<details>
+<summary>Por que não usar <code>VITE_SENTRY_DSN</code>?</summary>
+
+O Vite **congela** as variáveis `VITE_*` dentro do JavaScript no momento em que
+a imagem Docker é construída. O Kamal, por sua vez, só entrega os secrets ao
+container **depois**, na hora de executar. O resultado seria o pior tipo de
+falha: o deploy fica **verde**, o app funciona, e nenhum erro de navegador
+chega ao Sentry — sem nenhuma mensagem explicando o porquê.
+
+Por isso o DSN é servido em tempo de execução pelo backend, em `/api/config`.
+Um único secret `SENTRY_DSN` atende os dois lados, e trocar o DSN não exige
+reconstruir a imagem. Veja
+[`docs/adr/004-sentry-dsn-em-runtime.md`](docs/adr/004-sentry-dsn-em-runtime.md).
+
+E sim: expor o DSN publicamente é seguro. Ele é uma credencial de **escrita**,
+projetada para viajar dentro do JavaScript do navegador.
+</details>
+
+---
+
+## Passo 7 — ChatOps: conserte os bugs pelo Telegram
+
+A partir daqui o roteiro é conduzido ao vivo. O fluxo que você vai exercitar:
+
+| # | O que você faz | O que o Hermes faz |
+|---|---|---|
+| 1 | Usa o app e encontra um erro | — |
+| 2 | Abre o Sentry e vê a Issue | — |
+| 3 | Pergunta no Telegram: *"o que houve nessa issue do Sentry?"* | Explica a causa em português claro |
+| 4 | Pede: *"corrige isso"* | Investiga, corrige, roda os testes e manda o **link do PR** |
+| 5 | Revisa e pede: *"publica"* | Faz o merge e dispara o deploy |
+| 6 | Recarrega o app | — |
+
+Mensagens que funcionam bem:
+
+- *"Meu app está devolvendo 500. Descobre o motivo e corrige."*
+- *"Tem uma Issue nova no Sentry. Me explica o que aconteceu."*
+- *"Corrige o erro que acontece quando eu movo uma task de coluna."*
+- *"Publica a correção e me avisa quando estiver no ar."*
+
+---
+
+## Comandos disponíveis
+
+```
+make setup    cria os secrets no seu fork (Locaweb Cloud, SSH, Postgres)
+make deploy   publica o app e acompanha até terminar
+make url      mostra o endereço do app no ar
+make sentry   grava o DSN do Sentry e republica
+make status   mostra os secrets e os últimos deploys
+```
+
+---
+
+## Quando algo dá errado
+
+| Sintoma | Causa provável | O que fazer |
+|---|---|---|
+| `make deploy` diz que não conseguiu disparar o workflow | Actions desativado no fork | Refaça o **passo 2** |
+| A pipeline falha no primeiro job (`infra`) | Chaves da Locaweb Cloud erradas ou ausentes | `make status` para conferir; `make setup --force` para recriar |
+| A pipeline falha logo no início com erro de credencial | Chave SSH gravada errada (faltou uma linha ao copiar) | `make setup --force` |
+| O site não abre, mas `make url` mostra um endereço | O certificado TLS ainda está sendo emitido | Espere 1–2 minutos e recarregue |
+| O app abre, mas o Sentry não recebe nada | O DSN foi gravado sem republicar | `make deploy` |
+| Erros do navegador não aparecem no Sentry | O frontend ainda não foi integrado | Faça o **passo 6.3** |
+| Quero apagar tudo da nuvem | — | Aba **Actions** → **Teardown Preview** → **Run workflow** |
+
+Travou em algo que não está na tabela? **Pergunte ao Hermes pelo Telegram** —
+ele tem acesso aos logs da pipeline e às VMs. É exatamente para isso que ele
+está aqui.
+
+---
+
+## Rodar na sua máquina (opcional)
+
+Não é necessário para o workshop, mas funciona:
+
+```bash
+# 1. Banco
+podman run -d --name kanbandev-app-db -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 docker.io/supabase/postgres:17.6.1.171
+
+# 2. Variáveis
+cp .env.example .env     # ajuste DATABASE_URL se mudar a porta
+
+# 3. Backend (terminal 1)
+set -a && . .env && set +a
+cd backend && mise x -- go run ./cmd/server
+
+# 4. Frontend (terminal 2)
+cd frontend && mise x -- npm install && mise x -- npm run dev
+```
+
+Abra <http://localhost:5173>. Testes:
+
+```bash
+cd backend  && mise x -- go test ./...   # Go
+cd frontend && mise x -- npm test        # React
+```
+
+---
+
+## Mapa do projeto
+
+```
+backend/          API em Go — handlers, migrations, queries (sqlc)
+frontend/         SPA em React — rotas, componentes, hooks
+config/           configuração do Kamal (deploy)
+.kamal/           mapeamento dos secrets para o Kamal
+.github/workflows/ pipelines de deploy e teardown
+scripts/          scripts de apoio (setup dos secrets)
+docs/             PRD, tarefas, infraestrutura e decisões (ADRs)
+Dockerfile        imagem única: React + Go
+```
+
+Documentação mais funda em [`docs/`](docs/):
+[PRD](docs/PRD.md) ·
+[Tarefas](docs/TASKS.md) ·
+[Infraestrutura](docs/INFRASTRUCTURE.md) ·
+[Roteiro do workshop](docs/WORKSHOP.md) ·
+[Decisões técnicas](docs/adr/)

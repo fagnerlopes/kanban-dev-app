@@ -49,7 +49,11 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
   os secrets da Locaweb Cloud no GitHub.** O cliente gera as credenciais no
   painel Locaweb Cloud e cria os secrets no GitHub.
 - **Sentry:** backend `sentry-go` (DSN via `SENTRY_DSN`); frontend
-  `@sentry/react` (DSN via `VITE_SENTRY_DSN` — a stack é Vite, não Next).
+  `@sentry/react` lendo o DSN de **`GET /api/config`**, não de
+  `VITE_SENTRY_DSN`. O Vite congela variáveis `VITE_*` no build da imagem e o
+  Kamal só entrega secrets em runtime: o secret chegaria vazio no bundle com a
+  pipeline verde. Um único secret atende os dois lados. Ver
+  [ADR-004](adr/004-sentry-dsn-em-runtime.md).
 - **Cada participante configura o próprio Hermes/Telegram** no setup.
 - **Repo:** `github.com/fagnerlopes/kanban-dev-app` (público).
 
@@ -104,8 +108,32 @@ board deste app.
 `/`, rotas da SPA, assets com `Content-Type` correto, `/api/board`, e
 `POST /api/dev/login` corretamente **ausente** (404) fora do modo dev.
 
+## Estado em 2026-09-22 (sessão de onboarding do participante)
+
+Foco: tornar o caminho **fork → publicar → Sentry** fácil o bastante para caber
+em 30 minutos sem depuração ao vivo.
+
+1. **Criado o `README.md`** — o repositório não tinha nenhuma porta de entrada.
+   Passo a passo completo do participante, do fork ao ChatOps.
+2. **`make setup` / `deploy` / `url` / `sentry` / `status`** (`Makefile` +
+   `scripts/setup-secrets.sh`). O setup gera a chave SSH e a senha do Postgres,
+   pede as duas chaves da Locaweb Cloud com digitação invisível, e é
+   idempotente (`--force` recria).
+3. **`workflow_dispatch` no `deploy-preview.yml`.** Um fork novo não tem commit
+   para empurrar — sem esse gatilho, "publicar" exigiria inventar um commit.
+4. **Armadilha do `VITE_SENTRY_DSN` eliminada.** Era o maior risco do roteiro:
+   o secret ficaria vazio no bundle e a pipeline passaria verde. O backend
+   agora serve o DSN em `GET /api/config`. Ver
+   [ADR-004](adr/004-sentry-dsn-em-runtime.md).
+5. **`APP_ENV` vira o ambiente do Sentry** (antes ia `BASE_URL`, virando uma
+   URL no facet). Coberto por `TestDeployConfigsSetAppEnv`.
+
+A integração do `@sentry/react` no frontend segue **intencionalmente por
+fazer** — é a feature que o Hermes cria ao vivo, no passo 4 do fluxo.
+
 ## Próximo passo
-1. Confirmar a interface no ar: abrir `https://191.252.226.176.nip.io/` e
-   fazer o login demo (antes desta correção, essa URL devolvia 404).
-2. Configurar o `SENTRY_DSN` real e integrar o Sentry no frontend.
-3. Plantar os bugs (backend = sintaxe na migration; frontend = runtime no dnd).
+1. Configurar o `SENTRY_DSN` real no repo original e validar o fluxo ponta a
+   ponta uma vez (criar projeto no Sentry, `make sentry`, ver o evento chegar).
+2. Plantar os bugs (backend = sintaxe na migration; frontend = runtime no dnd).
+   **Antes disso**, reler a dívida anotada em `TASKS.md`: o bug de migration
+   derruba o deploy em vez de gerar 500.

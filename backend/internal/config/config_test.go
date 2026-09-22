@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoadDefaults(t *testing.T) {
-	for _, k := range []string{"PORT", "BASE_URL", "DEV_MODE", "SENTRY_DSN", "DATABASE_URL"} {
+	for _, k := range []string{"PORT", "BASE_URL", "DEV_MODE", "SENTRY_DSN", "DATABASE_URL", "APP_ENV"} {
 		t.Setenv(k, "")
 	}
 
@@ -22,6 +22,42 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.DevMode {
 		t.Error("DevMode = true with DEV_MODE unset; it must default to off")
+	}
+	if cfg.AppEnv != "local" {
+		t.Errorf("AppEnv = %q, want the local default", cfg.AppEnv)
+	}
+}
+
+// AppEnv is what Sentry groups issues by. It used to receive BASE_URL, which
+// turned the environment facet into a URL and made the Sentry UI useless.
+func TestAppEnvComesFromAppEnvNotBaseURL(t *testing.T) {
+	t.Setenv("APP_ENV", "preview")
+	t.Setenv("BASE_URL", "https://191.252.226.176.nip.io")
+
+	if got := Load().AppEnv; got != "preview" {
+		t.Errorf("AppEnv = %q, want %q", got, "preview")
+	}
+}
+
+// Every deployed environment must label itself, otherwise Sentry files preview
+// issues under "local" and the workshop participant cannot tell them apart.
+func TestDeployConfigsSetAppEnv(t *testing.T) {
+	configs, err := filepath.Glob(filepath.Join("..", "..", "..", "config", "deploy.*.yml"))
+	if err != nil {
+		t.Fatalf("glob deploy configs: %v", err)
+	}
+	if len(configs) == 0 {
+		t.Fatal("no config/deploy.<env>.yml found — the guard would silently pass")
+	}
+
+	for _, path := range configs {
+		body, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read %s: %v", path, err)
+		}
+		if !strings.Contains(string(body), "APP_ENV:") {
+			t.Errorf("%s does not set APP_ENV — Sentry would label its issues %q", path, "local")
+		}
 	}
 }
 

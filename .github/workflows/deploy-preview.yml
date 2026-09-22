@@ -4,6 +4,10 @@ on:
   push:
     branches: [master]
     paths-ignore: [".claude/**"]
+  # A fresh fork has no new commit to push, so "publish my app" would have no
+  # trigger. This makes the first deploy a single button click in the Actions
+  # tab (Deploy Preview -> Run workflow).
+  workflow_dispatch:
 
 permissions:
   contents: read

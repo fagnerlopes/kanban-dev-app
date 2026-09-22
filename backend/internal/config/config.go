@@ -19,6 +19,9 @@ type Config struct {
 	DevMode bool
 	// SentryDSN is the Sentry DSN for error reporting. Empty disables reporting.
 	SentryDSN string
+	// AppEnv names the environment ("local", "preview", ...). It is what Sentry
+	// groups issues by, so it must be a short label -- never a URL.
+	AppEnv string
 }
 
 // Load reads configuration from the environment.
@@ -29,6 +32,7 @@ func Load() Config {
 		BaseURL:     getenv("BASE_URL", "http://localhost:5173"),
 		DevMode:     os.Getenv("DEV_MODE") == "1",
 		SentryDSN:   os.Getenv("SENTRY_DSN"),
+		AppEnv:      getenv("APP_ENV", "local"),
 	}
 	return cfg
 }

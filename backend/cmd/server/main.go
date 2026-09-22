@@ -40,7 +40,7 @@ func main() {
 
 	// Optional Sentry initialization (DSN from env).
 	if cfg.SentryDSN != "" {
-		if err := handler.InitSentry(cfg.SentryDSN, cfg.BaseURL); err != nil {
+		if err := handler.InitSentry(cfg.SentryDSN, cfg.AppEnv); err != nil {
 			slog.Warn("sentry init failed (continuing without it)", "err", err)
 		} else {
 			slog.Info("sentry initialized")

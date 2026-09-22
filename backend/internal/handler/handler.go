@@ -10,6 +10,10 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
+// releaseName tags every Sentry event (backend and browser) with the same
+// release, so both sides of an issue line up in the Sentry UI.
+const releaseName = "kanban-dev-app"
+
 // API bundles the dependencies shared by all handlers.
 type API struct {
 	db  *sql.DB
@@ -20,6 +24,7 @@ type API struct {
 func NewAPI(db *sql.DB, cfg config.Config) http.Handler {
 	api := &API{db: db, cfg: cfg}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/config", api.handleConfig)
 	mux.HandleFunc("GET /api/board", api.handleBoard)
 	mux.HandleFunc("POST /api/tasks", api.handleCreateTask)
 	mux.HandleFunc("PATCH /api/tasks/{id}", api.handleUpdateTask)
@@ -31,7 +36,8 @@ func NewAPI(db *sql.DB, cfg config.Config) http.Handler {
 }
 
 // InitSentry initializes the Sentry SDK. It is a no-op (with a log) when the
-// DSN is empty, so the app runs fine without Sentry configured.
+// DSN is empty, so the app runs fine without Sentry configured. envName is the
+// short environment label ("local", "preview") -- Sentry groups issues by it.
 func InitSentry(dsn, envName string) error {
 	if dsn == "" {
 		return nil
@@ -39,7 +45,7 @@ func InitSentry(dsn, envName string) error {
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn:         dsn,
 		Environment: envName,
-		Release:     "kanban-dev-app",
+		Release:     releaseName,
 	})
 	if err != nil {
 		return err
