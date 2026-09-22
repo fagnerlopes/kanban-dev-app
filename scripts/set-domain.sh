@@ -35,25 +35,43 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "isto nao e um reposito
 # vazado quando na verdade e so ruido do make.
 redeploy() { exec make -C "$ROOT" --no-print-directory deploy; }
 
-# Resolve um nome para IPv4 usando a primeira ferramenta disponivel.
-# Imprime nada quando nao resolve; retorna 1 quando nao ha ferramenta nenhuma.
-resolve_ip() {
-  local name="$1" out=""
-  if command -v getent >/dev/null 2>&1; then
-    out=$(getent ahostsv4 "$name" 2>/dev/null | awk '{print $1; exit}')
-    printf '%s' "$out"; return 0
-  fi
+# Resolve um nome para IPv4 do ponto de vista PUBLICO, imprimindo um IP por
+# linha. Retorna 1 quando nao ha nenhuma ferramenta de DNS disponivel.
+#
+# Consultar resolvedores publicos nao e preciosismo: quem valida o dominio e o
+# Let's Encrypt, a partir da internet -- nao a sua maquina. Em rede corporativa
+# ou VPN o DNS interno costuma responder "nao existe" para zonas externas, e
+# confiar nele daria "ainda nao resolve" para um dominio perfeitamente
+# configurado. O resolvedor local entra so como complemento.
+resolve_ips() {
+  local name="$1" found="" server out have_tool=0
+
   if command -v dig >/dev/null 2>&1; then
-    out=$(dig +short A "$name" 2>/dev/null | grep -E '^[0-9.]+$' | head -1)
-    printf '%s' "$out"; return 0
+    have_tool=1
+    for server in 1.1.1.1 8.8.8.8; do
+      out=$(dig +short +time=3 +tries=1 A "$name" "@$server" 2>/dev/null || true)
+      found="$found$out
+"
+    done
   fi
-  if command -v python3 >/dev/null 2>&1; then
+
+  if command -v getent >/dev/null 2>&1; then
+    have_tool=1
+    out=$(getent ahostsv4 "$name" 2>/dev/null | awk '{print $1}' || true)
+    found="$found$out
+"
+  elif command -v python3 >/dev/null 2>&1; then
+    have_tool=1
     out=$(python3 -c "import socket,sys
 try: print(socket.gethostbyname(sys.argv[1]))
-except Exception: pass" "$name" 2>/dev/null)
-    printf '%s' "$out"; return 0
+except Exception: pass" "$name" 2>/dev/null || true)
+    found="$found$out
+"
   fi
-  return 1
+
+  [ "$have_tool" -eq 1 ] || return 1
+  printf '%s\n' "$found" | grep -E '^[0-9]+(\.[0-9]+){3}$' | sort -u || true
+  return 0
 }
 
 # IP da VM web, lido do ultimo deploy bem-sucedido.
@@ -117,18 +135,18 @@ MISMATCH=0
 OLDIFS=$IFS; IFS=','
 for NAME in $DOMAIN; do
   IFS=$OLDIFS
-  if ! RESOLVED=$(resolve_ip "$NAME"); then
+  if ! RESOLVED=$(resolve_ips "$NAME"); then
     warn "sem ferramenta de DNS nesta maquina; pulando a conferencia"
     break
   fi
   if [ -z "$RESOLVED" ]; then
     warn "$NAME ainda nao resolve"
     MISMATCH=1
-  elif [ "$RESOLVED" != "$IP" ]; then
-    warn "$NAME resolve para $RESOLVED, e nao para $IP"
-    MISMATCH=1
-  else
+  elif printf '%s\n' "$RESOLVED" | grep -qx "$IP"; then
     ok "$NAME -> $IP"
+  else
+    warn "$NAME resolve para $(printf '%s' "$RESOLVED" | tr '\n' ' '), e nao para $IP"
+    MISMATCH=1
   fi
   IFS=','
 done

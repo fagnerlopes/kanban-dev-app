@@ -333,8 +333,12 @@ make domain
 
 Ele pergunta o domínio, **confere se o DNS já resolve para a sua VM** e só então
 grava a configuração e republica. Se o DNS ainda não estiver pronto, ele avisa e
-mostra exatamente o registro que falta criar — em vez de deixar você descobrir
-pelo deploy quebrado.
+mostra exatamente o registro que falta criar.
+
+A conferência consulta DNS público (1.1.1.1 e 8.8.8.8), não o resolvedor da sua
+máquina — quem valida o domínio é o Let's Encrypt, a partir da internet. Se você
+está em rede corporativa ou VPN, o DNS interno pode dizer que o domínio não
+existe mesmo estando tudo certo.
 
 Também dá para passar direto:
 

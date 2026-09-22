@@ -79,6 +79,12 @@ participante pode até ignorar o aviso sem consequência.
   pelo comentário no arquivo e pelo teste.
 - A conferência de DNS depende de `getent`, `dig` ou `python3`. Sem nenhum dos
   três o script avisa e segue em frente, em vez de travar.
+- A conferência consulta resolvedores públicos (1.1.1.1 e 8.8.8.8), não só o
+  resolvedor da máquina. Não é preciosismo: quem valida o domínio é o Let's
+  Encrypt, a partir da internet. Numa rede corporativa o DNS interno costuma
+  responder "não existe" para zonas externas — aconteceu no primeiro teste
+  real, com o domínio já configurado corretamente. Confiar no resolvedor local
+  produziria um falso "ainda não resolve".
 - `www` responde mas não redireciona para o domínio canônico. Aceitável aqui
   (a sessão demo é local ao navegador); num app real exigiria redirect 301.
 
