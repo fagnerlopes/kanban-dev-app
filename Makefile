@@ -53,8 +53,12 @@ url:
 	  if [ -z "$$IP" ]; then echo "Nao consegui ler o IP da VM web."; exit 1; fi; \
 	  echo ""; \
 	  if [ -n "$$DOMAIN" ]; then \
-	    echo "  Seu app esta no ar:  https://$$DOMAIN"; \
-	    echo "  (endereco direto da VM:  https://$$IP.nip.io)"; \
+	    echo "  Seu app esta no ar em:"; \
+	    echo ""; \
+	    echo "    https://$$IP.nip.io    <- endereco da VM, sempre funciona"; \
+	    echo "    https://$$DOMAIN    <- seu dominio, se o DNS ja propagou"; \
+	    echo ""; \
+	    echo "  Conferir o DNS do dominio:  make domain d=$$DOMAIN"; \
 	  else \
 	    echo "  Seu app esta no ar:  https://$$IP.nip.io"; \
 	  fi; \
