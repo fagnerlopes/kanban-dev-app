@@ -299,6 +299,95 @@ projetada para viajar dentro do JavaScript do navegador.
 
 ---
 
+## Opcional — Use o seu próprio domínio
+
+Funciona perfeitamente sem isso: o endereço `nip.io` já tem HTTPS válido. Mas se
+você tem um domínio e quer usá-lo, são dois comandos.
+
+**A ordem importa.** O IP da sua VM só existe depois do primeiro deploy, e o
+certificado é emitido por **desafio HTTP-01** — o Let's Encrypt acessa o seu
+domínio para provar que ele é seu. Ou seja: o DNS precisa estar apontando para
+a VM **antes** de publicar, não depois.
+
+**1.** Descubra o IP da sua VM:
+
+```bash
+make url
+```
+
+**2.** No seu provedor de domínio, crie um registro **A**:
+
+```
+Tipo: A     Nome: kanbandev     Valor: <o IP do passo 1>     TTL: 300
+```
+
+**3.** Espere a propagação (costuma levar de 1 a 30 minutos) e rode:
+
+```bash
+make domain
+```
+
+Ele pergunta o domínio, **confere se o DNS já resolve para a sua VM** e só então
+grava a configuração e republica. Se o DNS ainda não estiver pronto, ele avisa e
+mostra exatamente o registro que falta criar — em vez de deixar você descobrir
+pelo deploy quebrado.
+
+Também dá para passar direto:
+
+```bash
+make domain d=kanbandev.suaempresa.dev
+```
+
+**Para voltar ao endereço `nip.io`:**
+
+```bash
+make domain-reset
+```
+
+<details>
+<summary>Domínio raiz (<code>exemplo.com.br</code>, sem subdomínio)</summary>
+
+Informe o domínio raiz **e** o `www`, separados por vírgula:
+
+```bash
+make domain d=exemplo.com.br,www.exemplo.com.br
+```
+
+Crie **dois** registros A, os dois apontando para o mesmo IP:
+
+```
+Tipo: A     Nome: @       Valor: <IP>     TTL: 300
+Tipo: A     Nome: www     Valor: <IP>     TTL: 300
+```
+
+O primeiro da lista é o canônico — é ele que vira o endereço oficial do app. O
+`www` também responde, mas não redireciona para o principal. Como a sessão demo
+fica no navegador, entrar por um e depois pelo outro cria duas sessões
+separadas. Para este workshop não atrapalha; num app de verdade, valeria um
+redirecionamento.
+
+</details>
+
+<details>
+<summary>Como isso funciona por dentro</summary>
+
+`make domain` grava uma **variável de repositório** chamada `APP_DOMAIN`
+(Settings → Secrets and variables → Actions → aba **Variables**). Não é um
+secret: um domínio é público.
+
+O `config/deploy.preview.yml` lê essa variável na hora do deploy. Vazia, o app
+responde no `nip.io` da VM — que é o motivo de um fork recém-criado publicar sem
+nenhuma configuração de DNS. Nada de editar arquivo e comitar: você troca o
+domínio de um fork sem tocar no código.
+
+Detalhe: `APP_DOMAIN` vale para o ambiente *preview*. Se um dia você criar um
+ambiente de produção, ele usa o nome com sufixo (`APP_DOMAIN_PRODUCTION`),
+mesma convenção dos secrets.
+
+</details>
+
+---
+
 ## Passo 7 — ChatOps: conserte os bugs pelo Telegram
 
 A partir daqui o roteiro é conduzido ao vivo. O fluxo que você vai exercitar:
@@ -324,11 +413,13 @@ Mensagens que funcionam bem:
 ## Comandos disponíveis
 
 ```
-make setup    cria os secrets no seu fork (Locaweb Cloud, SSH, Postgres)
-make deploy   publica o app e acompanha até terminar
-make url      mostra o endereço do app no ar
-make sentry   grava o DSN do Sentry e republica
-make status   mostra os secrets e os últimos deploys
+make setup          cria os secrets no seu fork (Locaweb Cloud, SSH, Postgres)
+make deploy         publica o app e acompanha até terminar
+make url            mostra o endereço do app no ar
+make sentry         grava o DSN do Sentry e republica
+make domain         aponta um domínio próprio (confere o DNS antes)
+make domain-reset   volta para o endereço nip.io
+make status         mostra secrets, domínio e últimos deploys
 ```
 
 ---
@@ -345,6 +436,8 @@ make status   mostra os secrets e os últimos deploys
 | Erros do **servidor** chegam ao Sentry, os do **navegador** não | Bloqueador de anúncios barrando `*.ingest.sentry.io` | Desative o bloqueador para o domínio do app, ou use uma janela anônima |
 | Nenhum erro de navegador chega, sem bloqueador ativo | O frontend ainda não foi integrado | Faça o **passo 6.3** |
 | A Issue mostra `a.b is not a function` em `index-4f2a.js:1:20481` | Source maps não estão sendo lidos | **Sentry → Settings → Security & Privacy → Allow JavaScript source fetching** |
+| O deploy falha ao emitir o certificado do meu domínio | O DNS não aponta para a VM (ou ainda não propagou) | `make url` para ver o IP, confira o registro A, espere e rode `make domain` de novo |
+| Configurei o domínio e quero desfazer | — | `make domain-reset` |
 | Quero apagar tudo da nuvem | — | Aba **Actions** → **Teardown Preview** → **Run workflow** |
 
 Travou em algo que não está na tabela? **Pergunte ao Hermes pelo Telegram** —

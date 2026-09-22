@@ -85,6 +85,7 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - [x] Dockerfile multi-stage (frontend + backend)
 - [x] Pipeline de deploy (GHA + Kamal, só com secrets)
 - [x] Crédito "Feito com Cofounder e Locaweb Cloud" (login + board)
+- [x] Domínio personalizado opcional via `APP_DOMAIN` (`make domain`)
 - [ ] Bugs plantados (após app funcional)
 
 ## Estado em 2026-09-19 (sessão de correção)

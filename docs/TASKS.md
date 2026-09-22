@@ -32,6 +32,7 @@ Tracker de desenvolvimento. Atualizado a cada sessão.
 | Source maps servidos pelo app (Sentry lê pela URL) | Done | `build.sourcemap: true` no Vite; sem `SENTRY_AUTH_TOKEN`, sem upload. Guardado por `TestViteBuildEmitsSourceMaps` e `TestFrontendServesSourceMaps` |
 | README: aviso de bloqueador de anúncios | Done | ad-blocker derruba só os eventos de navegador — sintoma confuso |
 | Crédito "Feito com Cofounder e Locaweb Cloud" | Done | componente `made-with.tsx`, no rodapé do login e do board; links com contraste ≥7:1 |
+| Domínio personalizado por variável (`APP_DOMAIN`) | Done | `make domain` confere o DNS antes de publicar; fallback `nip.io`. Ver [ADR-005](adr/005-dominio-por-variavel-de-ambiente.md) |
 | Sentry: integração no frontend | Pending | **de propósito** — é a feature que o Hermes cria ao vivo (`@sentry/react` lendo `/api/config`, **sem o wizard**) |
 | Sentry: configurar DSN real | Pending | secret `SENTRY_DSN` ainda não existe no repo original |
 | Bugs plantados (backend migration + frontend) | Pending | só depois do app 100% funcional — ver `WORKSHOP.md` |
