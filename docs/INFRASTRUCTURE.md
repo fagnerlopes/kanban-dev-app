@@ -73,6 +73,22 @@ ilegível no painel. Resolvida em ERB no `config/deploy.preview.yml`. Ver
   integração já existe via `SENTRY_DSN` (`sentry-go`); DSN vazio = desativado.
   No frontend ela ainda **não** foi implementada — é de propósito um passo do
   workshop, feito pelo Hermes ao vivo.
+- **O que o backend manda para o Sentry hoje:** erros 500 (capturados em
+  `writeErr`), panics (`recoverWithSentry`), falhas de arranque — banco fora do
+  ar, migration quebrada — que agora são reportadas **antes** do `os.Exit`;
+  logs `slog` de `Warn` para cima (ponte em `sentryslog.go`); traces de todas as
+  requisições (`sentryhttp` + `SENTRY_TRACES_SAMPLE_RATE`); e contadores
+  `kanban.task.{created,updated,deleted}`.
+- **`EnableLogs` não existe** no SDK Go (v0.49.0, a mais recente). O snippet de
+  onboarding do Sentry mostra essa opção, mas ela virou `DisableLogs` e depois
+  foi removida: logs e métricas são ligados pelo **uso** das APIs
+  (`sentry.NewLogger`, `sentry.NewMeter`). Só o tracing ainda precisa de flag.
+- **Nunca embrulhar `slog.Default().Handler()` e chamar `slog.SetDefault`.**
+  O handler padrão do slog escreve pelo pacote `log`, e o `SetDefault` manda o
+  pacote `log` de volta para o handler padrão — os dois se chamam até o mutex do
+  `log` travar contra si mesmo. O processo congela na primeira linha de log, sem
+  panic e sem mensagem. Guardado por
+  `TestAppLoggerDoesNotDeadlockAfterSetDefault`.
 - **O DSN do frontend NÃO vem de `VITE_SENTRY_DSN`.** O Vite congela variáveis
   `VITE_*` durante o build da imagem, e o Kamal só entrega secrets em runtime —
   o secret ficaria vazio no bundle com a pipeline verde. O backend serve o DSN

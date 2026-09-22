@@ -213,6 +213,21 @@ app só passa a enxergar o DSN depois de uma nova publicação.
 
 Pronto: **o backend já está reportando erros.** Não precisa mexer em código.
 
+O que ele manda para o Sentry:
+
+| | |
+|---|---|
+| **Erros** | todo 500 da API, panics, e falhas de arranque (banco fora do ar, migration quebrada) |
+| **Logs** | os logs da aplicação de `Warn` para cima |
+| **Tracing** | todas as requisições (ajustável em `SENTRY_TRACES_SAMPLE_RATE`) |
+| **Métricas** | `kanban.task.created` / `updated` / `deleted` |
+
+> **Se você seguir o snippet de onboarding do Sentry**, ele sugere
+> `EnableLogs: true`. Essa opção **não existe** no SDK Go atual — ela virou
+> `DisableLogs` e depois foi removida. Logs e métricas ligam sozinhos ao usar
+> `sentry.NewLogger` e `sentry.NewMeter`, que é o que este app já faz. Copiar o
+> snippet quebra a compilação.
+
 ### 6.3 — Peça ao Hermes para ligar o Sentry no frontend
 
 Esta parte é de propósito uma tarefa para o agente — é a demonstração de que o

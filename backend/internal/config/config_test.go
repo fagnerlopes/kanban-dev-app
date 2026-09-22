@@ -28,6 +28,26 @@ func TestLoadDefaults(t *testing.T) {
 	}
 }
 
+// A typo in the sample rate must not disable tracing silently, and must never
+// take the app down at startup — it is an observability knob, not a dependency.
+func TestSentryTracesSampleRateFallsBackOnBadInput(t *testing.T) {
+	for _, raw := range []string{"", "abc", "-0.5", "2", "1,0"} {
+		t.Setenv("SENTRY_TRACES_SAMPLE_RATE", raw)
+		if got := Load().SentryTracesSampleRate; got != 1 {
+			t.Errorf("SENTRY_TRACES_SAMPLE_RATE=%q -> %v, want the default 1", raw, got)
+		}
+	}
+}
+
+func TestSentryTracesSampleRateAcceptsValidRates(t *testing.T) {
+	for raw, want := range map[string]float64{"0": 0, "0.25": 0.25, "1": 1} {
+		t.Setenv("SENTRY_TRACES_SAMPLE_RATE", raw)
+		if got := Load().SentryTracesSampleRate; got != want {
+			t.Errorf("SENTRY_TRACES_SAMPLE_RATE=%q -> %v, want %v", raw, got, want)
+		}
+	}
+}
+
 // AppEnv is what Sentry groups issues by. It used to receive BASE_URL, which
 // turned the environment facet into a URL and made the Sentry UI useless.
 func TestAppEnvComesFromAppEnvNotBaseURL(t *testing.T) {

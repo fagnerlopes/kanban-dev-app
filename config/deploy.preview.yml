@@ -26,6 +26,7 @@ servers:
 env:
   clear:
     APP_ENV: preview
+    SENTRY_TRACES_SAMPLE_RATE: "1" # workshop traffic is a room full of people, not production
     BASE_URL: https://<%= app_domains.first || nip_host %> # APP_DOMAIN when set, else nip.io
     # DEV_MODE is deliberately absent. It is a LOCAL-ONLY flag: it registers the
     # dev login route and tells the Go server that Vite -- not Go -- serves the

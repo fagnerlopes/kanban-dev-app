@@ -35,22 +35,35 @@ func NewAPI(db *sql.DB, cfg config.Config) http.Handler {
 	return recoverWithSentry(mux)
 }
 
-// InitSentry initializes the Sentry SDK. It is a no-op (with a log) when the
-// DSN is empty, so the app runs fine without Sentry configured. envName is the
-// short environment label ("local", "preview") -- Sentry groups issues by it.
-func InitSentry(dsn, envName string) error {
-	if dsn == "" {
+// InitSentry initializes the Sentry SDK. It is a no-op when the DSN is empty,
+// so the app runs fine without Sentry configured.
+//
+// Note on the options: Sentry's onboarding snippet for Go suggests
+// `EnableLogs: true`, which does not compile against this SDK. That flag became
+// `DisableLogs` and was then removed entirely (see the SDK changelog) -- logs
+// and metrics are now switched on simply by *using* their APIs
+// (sentry.NewLogger / sentry.NewMeter), which is what this app does. Tracing is
+// the one that still needs a flag, plus a sample rate.
+func InitSentry(cfg config.Config) error {
+	if cfg.SentryDSN == "" {
 		return nil
 	}
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:         dsn,
-		Environment: envName,
+		Dsn:         cfg.SentryDSN,
+		Environment: cfg.AppEnv,
 		Release:     releaseName,
+		// Stack traces on captured messages, not just on exceptions --
+		// otherwise a reported 500 arrives with nowhere to look.
+		AttachStacktrace: true,
+		EnableTracing:    cfg.SentryTracesSampleRate > 0,
+		TracesSampleRate: cfg.SentryTracesSampleRate,
 	})
 	if err != nil {
 		return err
 	}
-	slog.Info("sentry ready", "environment", envName)
+	slog.Info("sentry ready",
+		"environment", cfg.AppEnv,
+		"traces_sample_rate", cfg.SentryTracesSampleRate)
 	return nil
 }
 

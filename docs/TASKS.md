@@ -34,7 +34,13 @@ Tracker de desenvolvimento. Atualizado a cada sessão.
 | Crédito "Feito com Cofounder e Locaweb Cloud" | Done | componente `made-with.tsx`, no rodapé do login e do board; links com contraste ≥7:1 |
 | Domínio personalizado por variável (`APP_DOMAIN`) | Done | `make domain` confere o DNS antes de publicar; fallback `nip.io`. Ver [ADR-005](adr/005-dominio-por-variavel-de-ambiente.md) |
 | Sentry: integração no frontend | Pending | **de propósito** — é a feature que o Hermes cria ao vivo (`@sentry/react` lendo `/api/config`, **sem o wizard**) |
-| Sentry: configurar DSN real | Pending | secret `SENTRY_DSN` ainda não existe no repo original |
+| Sentry: configurar DSN real | Done | secret gravado via `make sentry`; evento de teste confirmado |
+| Sentry: reportar 500 tratados (`writeErr`) | Done | antes só `panic` chegava; um 500 de query quebrada era invisível |
+| Sentry: reportar falhas de arranque | Done | banco fora do ar / migration quebrada agora reportam e dão flush antes do `os.Exit` |
+| Sentry: logs (`slog` → structured logs, Warn+) | Done | ponte em `sentryslog.go`; sem `EnableLogs`, que não existe no SDK Go |
+| Sentry: tracing (`sentryhttp` + sample rate) | Done | `SENTRY_TRACES_SAMPLE_RATE`, default 1 |
+| Sentry: Application Metrics | Done | `kanban.task.{created,updated,deleted}` |
+| **Fix: deadlock ao instalar o logger** | Done | embrulhar `slog.Default().Handler()` + `SetDefault` trava o processo na 1ª linha de log, sem panic |
 | Bugs plantados (backend migration + frontend) | Pending | só depois do app 100% funcional — ver `WORKSHOP.md` |
 
 ## Dívida conhecida (não bloqueia o workshop)
