@@ -44,12 +44,12 @@ Tracker de desenvolvimento. Atualizado a cada sessão.
 | `GET /api/health` para monitoramento externo | Done | 200/503 com check de banco; separado do `/up` do kamal-proxy |
 | Ícone do GitHub no header (login + board) | Done | link vem de `repo_url` em `/api/config`, então cada fork aponta para si mesmo |
 | Seed de cards de exemplo (migration 003) | Done | 10 Backlog / 3 To Do / 4 In Dev / 2 Review / 4 Done; idempotente e não toca em cards existentes |
-| Bugs plantados (backend migration + frontend) | Pending | só depois do app 100% funcional — ver `WORKSHOP.md` |
+| Bugs plantados (backend + frontend) | Done | mover card → 500 (sintaxe SQL); criar card → TypeError. Ver `WORKSHOP.md`. **2 testes ficam vermelhos de propósito** |
 
 ## Dívida conhecida (não bloqueia o workshop)
 
 | Item | Nota |
 |------|------|
 | `PATCH /api/tasks/{id}` ignora `description` | A query `UpdateTask` não atualiza a descrição; hoje nenhuma tela edita esse campo, então não aparece. |
-| Bug de backend planejado derruba o deploy, não gera 500 | O `WORKSHOP.md` prevê erro de sintaxe numa migration. Como as migrations rodam na subida, o processo sai com `os.Exit(1)`, o Kamal não promove a versão e o **deploy falha** — o participante vê pipeline vermelha, não um 500. Decidir na hora de plantar: ou aceitar isso como o roteiro, ou trocar por um erro que só dispara ao servir uma rota. |
+| Bug de migration ficou de fora | Derrubaria o deploy em vez de gerar 500, e o participante nunca veria o app funcionando. Os bugs escolhidos quebram uma ação cada. Resolvido — ver `WORKSHOP.md`. |
 | Senha do Postgres local | O `DATABASE_URL` do `.env` usa uma senha de 3 caracteres. Só afeta a máquina local (o deploy usa o secret `POSTGRES_PASSWORD`), mas vale trocar. |

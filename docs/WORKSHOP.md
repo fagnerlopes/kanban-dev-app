@@ -88,7 +88,7 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - [x] Domínio personalizado opcional via `APP_DOMAIN` (`make domain`)
 - [x] Seed de 23 cards de exemplo (migration 003) — o quadro abre populado
 - [x] `GET /api/health` (base do cronjob de alerta no Telegram)
-- [ ] Bugs plantados (após app funcional)
+- [x] Bugs plantados (ver seção abaixo)
 
 ## Estado em 2026-09-19 (sessão de correção)
 
@@ -152,3 +152,47 @@ fazer** — é a feature que o Hermes cria ao vivo, no passo 4 do fluxo.
 2. Plantar os bugs (backend = sintaxe na migration; frontend = runtime no dnd).
    **Antes disso**, reler a dívida anotada em `TASKS.md`: o bug de migration
    derruba o deploy em vez de gerar 500.
+
+## Bugs plantados (2026-09-22)
+
+Plantados **depois** de o app estar funcional, testado e publicado. Os dois
+quebram **uma ação específica**: o quadro abre normalmente com os 23 cards, e o
+participante descobre cada bug ao usar o app.
+
+O plano original — erro de sintaxe numa migration — foi **descartado**: as
+migrations rodam na subida do container, então o processo sai com `os.Exit(1)`,
+o Kamal não promove a versão e o **deploy fica vermelho**. O participante veria
+pipeline vermelha, não um 500, e nunca chegaria a ver o app funcionando.
+
+### Bug 1 — backend, ao mover um card
+
+| | |
+|---|---|
+| **Onde** | `queries/tasks.sql` e `sqlc/tasks.sql.go` — vírgula sobrando depois de `updated_at = now(),` antes do `WHERE` |
+| **Sintoma** | Arrastar um card entre colunas → banner `updateTask: 500` na tela |
+| **Não afeta** | Abrir o quadro, entrar, criar, excluir, `/up`, `/api/health` |
+| **Deploy** | **Verde** — SQL não é compilado |
+| **Sentry** | `ERROR: syntax error at or near "WHERE" (SQLSTATE 42601)`, rota `PATCH /api/tasks/{id}` |
+| **Teste que falha** | `TestUpdateTaskMovesBetweenColumns` |
+| **Correção** | Tirar a vírgula no `.sql`, rodar `sqlc generate`, rodar os testes |
+
+### Bug 2 — frontend, ao criar um card
+
+| | |
+|---|---|
+| **Onde** | `components/column.tsx` — `inputRef` declarada mas **nunca ligada** ao input, e `inputRef.current!.blur()` silencia o TypeScript com `!` |
+| **Sintoma** | Clicar em **Adicionar** → nada acontece; o card não é criado |
+| **Erro** | `Cannot read properties of null (reading 'blur')`, **não capturado** → o handler global do `@sentry/react` pega sozinho |
+| **Build / typecheck** | **Passam** — o `!` esconde o problema do compilador, como na vida real |
+| **Teste que falha** | `Column > creates a task via the inline form` |
+| **Correção** | Ligar `ref={inputRef}` no input (ou remover a chamada) |
+
+**Depende do passo 6.3:** esse erro só chega ao Sentry se o participante tiver
+pedido ao Hermes a integração do `@sentry/react`. Quem pulou vê a tela travar e
+o Sentry vazio — o que amarra o roteiro.
+
+### Estado dos testes
+
+Dois testes ficam vermelhos, **um por bug**, e cada um aponta direto para a
+causa. Isso é proposital: o Hermes roda a suíte e tem o diagnóstico na hora. O
+pipeline de deploy **não roda testes**, então nada disso bloqueia publicar.

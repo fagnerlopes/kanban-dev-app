@@ -19,7 +19,7 @@ UPDATE tasks
 SET column_id = $2,
     position  = $3,
     title     = $4,
-    updated_at = now()
+    updated_at = now(),
 WHERE id = $1
 RETURNING id, column_id, title, description, position, created_at, updated_at;
 

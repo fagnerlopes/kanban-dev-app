@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import type { ColumnWithTasks } from "~/lib/api";
 import { TaskCard } from "./task-card";
@@ -40,11 +40,14 @@ export function Column({
   const [isOver, setIsOver] = useState(false);
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const accent = columnAccent(column.name);
 
   function submitAdd() {
     const t = title.trim();
-    if (t) onAdd(column.id, t);
+    if (!t) return;
+    inputRef.current!.blur();
+    onAdd(column.id, t);
     setTitle("");
     setAdding(false);
   }
