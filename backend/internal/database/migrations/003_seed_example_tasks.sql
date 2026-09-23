@@ -1,21 +1,6 @@
--- 003: Example cards so a fresh board looks like a real development flow.
---
--- A board that opens empty tells the visitor nothing: it is not obvious that
--- cards drag between lanes, and there is no sense of what belongs in each one.
--- These are ordinary tasks of a team building this kind of product.
---
--- Two properties this migration keeps:
---
---   * It never touches existing cards. Rows are added, nothing is updated or
---     deleted -- a board someone already used keeps whatever is on it.
---   * It is idempotent. The NOT EXISTS guard matches on (column, title), so
---     re-running adds nothing. The runner already tracks migrations by
---     filename; this is the second line of defence, for a database restored or
---     migrated by hand.
---
--- Positions continue after whatever the lane already holds, so seeded cards
--- never collide with existing ones. MAX() is evaluated against the statement's
--- snapshot, so every row of a lane gets the same base and `pos` orders them.
+-- 003: cards de exemplo para o quadro nao abrir vazio.
+-- So insere: posicoes continuam depois do que a coluna ja tem, e o NOT EXISTS
+-- por (coluna, titulo) torna a migration idempotente.
 
 INSERT INTO tasks (column_id, title, description, position)
 SELECT

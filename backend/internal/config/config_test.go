@@ -28,8 +28,6 @@ func TestLoadDefaults(t *testing.T) {
 	}
 }
 
-// A typo in the sample rate must not disable tracing silently, and must never
-// take the app down at startup — it is an observability knob, not a dependency.
 func TestSentryTracesSampleRateFallsBackOnBadInput(t *testing.T) {
 	for _, raw := range []string{"", "abc", "-0.5", "2", "1,0"} {
 		t.Setenv("SENTRY_TRACES_SAMPLE_RATE", raw)
@@ -48,8 +46,6 @@ func TestSentryTracesSampleRateAcceptsValidRates(t *testing.T) {
 	}
 }
 
-// AppEnv is what Sentry groups issues by. It used to receive BASE_URL, which
-// turned the environment facet into a URL and made the Sentry UI useless.
 func TestAppEnvComesFromAppEnvNotBaseURL(t *testing.T) {
 	t.Setenv("APP_ENV", "preview")
 	t.Setenv("BASE_URL", "https://191.252.226.176.nip.io")
@@ -59,8 +55,6 @@ func TestAppEnvComesFromAppEnvNotBaseURL(t *testing.T) {
 	}
 }
 
-// Every deployed environment must label itself, otherwise Sentry files preview
-// issues under "local" and the workshop participant cannot tell them apart.
 func TestDeployConfigsSetAppEnv(t *testing.T) {
 	forEachEnvConfig(t, func(t *testing.T, path, body string) {
 		if !strings.Contains(body, "APP_ENV:") {
@@ -69,9 +63,6 @@ func TestDeployConfigsSetAppEnv(t *testing.T) {
 	})
 }
 
-// The public hostname must stay driven by the APP_DOMAIN repository variable.
-// Hardcoding a domain works for whoever typed it and breaks every fork, which
-// would route a name its owner does not control.
 func TestDeployConfigsKeepDomainConfigurable(t *testing.T) {
 	forEachEnvConfig(t, func(t *testing.T, path, body string) {
 		if !strings.Contains(body, "APP_DOMAIN") {
@@ -80,21 +71,11 @@ func TestDeployConfigsKeepDomainConfigurable(t *testing.T) {
 	})
 }
 
-// The nip.io host must be routed unconditionally, not only when APP_DOMAIN is
-// empty. kamal-proxy routes strictly by Host header, so a config that swapped
-// nip.io for the custom domain takes the app offline the moment the domain is
-// set before its DNS is ready — and the deploy still reports success, because
-// the health check talks to the container directly and never exercises the
-// public hostname. Verified the hard way: a green deploy left the app
-// unreachable on every address.
 func TestDeployConfigsAlwaysRouteNipIo(t *testing.T) {
 	forEachEnvConfig(t, func(t *testing.T, path, body string) {
 		if !strings.Contains(body, "nip.io") {
 			t.Fatalf("%s never mentions nip.io — the IP-address URL would stop working", path)
 		}
-		// The nip.io host must not sit behind an "only if APP_DOMAIN is empty"
-		// branch. Such a branch reads as an assignment guarded by `if`/`unless`
-		// on the same line as the nip.io literal.
 		for i, line := range strings.Split(body, "\n") {
 			if !strings.Contains(line, "nip.io") {
 				continue
@@ -134,8 +115,6 @@ func TestDevModeOnlyOnExplicitOne(t *testing.T) {
 	}
 }
 
-// A generated Postgres password can contain "@", which pgx would otherwise
-// read as the start of the host.
 func TestNormalizeDatabaseURLEncodesPassword(t *testing.T) {
 	got := normalizeDatabaseURL("postgres://postgres:p@ss@db:5432/postgres?sslmode=disable")
 
@@ -157,8 +136,6 @@ func TestNormalizeDatabaseURLEncodesPassword(t *testing.T) {
 	}
 }
 
-// When the DSN cannot be parsed, it must pass through untouched so pgx reports
-// the real error instead of a mangled one.
 func TestNormalizeDatabaseURLPassesThroughUnparseable(t *testing.T) {
 	for _, dsn := range []string{"", "not a url at all", "postgres://postgres:pa/ss@db:5432/postgres"} {
 		if got := normalizeDatabaseURL(dsn); got != dsn {
@@ -167,10 +144,6 @@ func TestNormalizeDatabaseURLPassesThroughUnparseable(t *testing.T) {
 	}
 }
 
-// DEV_MODE is a local-only flag: it registers POST /api/dev/login and tells the
-// server that Vite serves the SPA. A deploy config that sets it takes the whole
-// app down — every page 404s while /up and the API still look healthy. This
-// guards the exact regression.
 func TestDeployConfigsNeverSetDevMode(t *testing.T) {
 	configs, err := filepath.Glob(filepath.Join("..", "..", "..", "config", "deploy*.yml"))
 	if err != nil {

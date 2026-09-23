@@ -4,7 +4,6 @@ import (
 	"errors"
 )
 
-// panicToError converts a recovered panic value to an error for Sentry.
 func panicToError(p any) error {
 	if err, ok := p.(error); ok {
 		return err

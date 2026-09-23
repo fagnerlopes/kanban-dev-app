@@ -10,8 +10,6 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-// releaseName tags every Sentry event (backend and browser) with the same
-// release, so both sides of an issue line up in the Sentry UI.
 const releaseName = "kanban-dev-app"
 
 // API bundles the dependencies shared by all handlers.
@@ -20,7 +18,6 @@ type API struct {
 	cfg config.Config
 }
 
-// NewAPI constructs the API handler with its dependencies.
 func NewAPI(db *sql.DB, cfg config.Config) http.Handler {
 	api := &API{db: db, cfg: cfg}
 	mux := http.NewServeMux()
@@ -35,25 +32,18 @@ func NewAPI(db *sql.DB, cfg config.Config) http.Handler {
 	return recoverWithSentry(mux)
 }
 
-// InitSentry initializes the Sentry SDK. It is a no-op when the DSN is empty,
-// so the app runs fine without Sentry configured.
+// InitSentry é um no-op quando o DSN está vazio.
 //
-// Note on the options: Sentry's onboarding snippet for Go suggests
-// `EnableLogs: true`, which does not compile against this SDK. That flag became
-// `DisableLogs` and was then removed entirely (see the SDK changelog) -- logs
-// and metrics are now switched on simply by *using* their APIs
-// (sentry.NewLogger / sentry.NewMeter), which is what this app does. Tracing is
-// the one that still needs a flag, plus a sample rate.
+// Não existe opção EnableLogs neste SDK: logs e métricas ligam pelo uso de
+// sentry.NewLogger e sentry.NewMeter. Só o tracing precisa de flag.
 func InitSentry(cfg config.Config) error {
 	if cfg.SentryDSN == "" {
 		return nil
 	}
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:         cfg.SentryDSN,
-		Environment: cfg.AppEnv,
-		Release:     releaseName,
-		// Stack traces on captured messages, not just on exceptions --
-		// otherwise a reported 500 arrives with nowhere to look.
+		Dsn:              cfg.SentryDSN,
+		Environment:      cfg.AppEnv,
+		Release:          releaseName,
 		AttachStacktrace: true,
 		EnableTracing:    cfg.SentryTracesSampleRate > 0,
 		TracesSampleRate: cfg.SentryTracesSampleRate,
@@ -67,8 +57,6 @@ func InitSentry(cfg config.Config) error {
 	return nil
 }
 
-// recoverWithSentry wraps a handler, capturing any panic to Sentry and
-// returning a 500. This is the hook the planted backend bug will trip.
 func recoverWithSentry(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {

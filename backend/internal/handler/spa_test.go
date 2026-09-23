@@ -9,8 +9,6 @@ import (
 	"testing"
 )
 
-// buildDist writes a minimal SPA build tree mirroring what `react-router build`
-// emits into frontend/build/client.
 func buildDist(t *testing.T, shellName string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -46,8 +44,6 @@ func serve(t *testing.T, dir, path string) *httptest.ResponseRecorder {
 	return rec
 }
 
-// The regression that took the deployed app down: with the SPA handler not
-// registered, "/" returned 404 even though the API and /up were healthy.
 func TestFrontendServesIndexAtRoot(t *testing.T) {
 	dir := buildDist(t, "index.html")
 	rec := serve(t, dir, "/")
@@ -59,8 +55,6 @@ func TestFrontendServesIndexAtRoot(t *testing.T) {
 	}
 }
 
-// Serving the SPA shell for hashed assets makes browsers reject them with a
-// MIME type error — the app looks completely broken in production only.
 func TestFrontendServesAssetsWithCorrectContentType(t *testing.T) {
 	dir := buildDist(t, "index.html")
 	for path, wantType := range map[string]string{
@@ -78,10 +72,6 @@ func TestFrontendServesAssetsWithCorrectContentType(t *testing.T) {
 	}
 }
 
-// Sentry fetches the .map from the URL in the bundle's sourceMappingURL
-// comment. If the SPA shell were served instead (HTTP 200 with HTML), Sentry
-// would fail to parse it and every browser stack trace would stay minified --
-// silently, with the deploy green.
 func TestFrontendServesSourceMaps(t *testing.T) {
 	dir := buildDist(t, "index.html")
 	rec := serve(t, dir, "/assets/app-abc123.js.map")
@@ -105,8 +95,6 @@ func TestFrontendFallsBackToShellForClientRoutes(t *testing.T) {
 	}
 }
 
-// A prerendered page must be served directly: delegating the directory to
-// FileServer would 301 to the trailing-slash form.
 func TestFrontendServesPrerenderedPageWithoutRedirect(t *testing.T) {
 	dir := buildDist(t, "index.html")
 	rec := serve(t, dir, "/about")
@@ -118,8 +106,6 @@ func TestFrontendServesPrerenderedPageWithoutRedirect(t *testing.T) {
 	}
 }
 
-// Builds that prerender "/" emit the shell as __spa-fallback.html; "/" must
-// still serve index.html (the prerendered home), not the shell.
 func TestFrontendPrefersSpaFallbackShell(t *testing.T) {
 	dir := buildDist(t, "__spa-fallback.html")
 	if body := serve(t, dir, "/").Body.String(); !strings.Contains(body, "home") {
@@ -130,8 +116,6 @@ func TestFrontendPrefersSpaFallbackShell(t *testing.T) {
 	}
 }
 
-// A directory without index.html must not render a browsable listing of the
-// app's internals.
 func TestFrontendNeverListsDirectories(t *testing.T) {
 	dir := buildDist(t, "index.html")
 	body := serve(t, dir, "/assets").Body.String()
@@ -140,7 +124,6 @@ func TestFrontendNeverListsDirectories(t *testing.T) {
 	}
 }
 
-// Unmatched API paths must 404, not fall back to the SPA shell.
 func TestFrontendDoesNotSwallowAPIPaths(t *testing.T) {
 	dir := buildDist(t, "index.html")
 	for _, path := range []string{"/api/missing", "/auth/callback"} {
@@ -150,10 +133,6 @@ func TestFrontendDoesNotSwallowAPIPaths(t *testing.T) {
 	}
 }
 
-// Serving .map files is only half of it — the build has to emit them. Turning
-// build.sourcemap off would cost nothing visible: the app still works, the
-// deploy stays green, and only the Sentry stack traces quietly go back to
-// being minified.
 func TestViteBuildEmitsSourceMaps(t *testing.T) {
 	path := filepath.Join("..", "..", "..", "frontend", "vite.config.ts")
 	body, err := os.ReadFile(path)

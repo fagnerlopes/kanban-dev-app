@@ -17,15 +17,11 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// testEnv bundles a database and an HTTP handler for integration tests.
 type testEnv struct {
 	db   *sql.DB
 	root http.Handler
 }
 
-// setupTest connects to the test database (DATABASE_URL), runs migrations,
-// and builds the API handler. It returns a cleanup func that restores the
-// tables to an empty state so each test starts from a clean slate.
 func setupTest(t *testing.T) *testEnv {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
@@ -45,8 +41,6 @@ func setupTest(t *testing.T) *testEnv {
 		t.Fatalf("migrations: %v", err)
 	}
 
-	// Reset tables so every test starts clean. Delete tasks first (FK child),
-	// then columns, then re-seed the default columns.
 	if _, err := db.Exec("DELETE FROM tasks"); err != nil {
 		t.Fatalf("delete tasks: %v", err)
 	}
@@ -64,7 +58,6 @@ func setupTest(t *testing.T) *testEnv {
 	return &testEnv{db: db, root: NewAPI(db, cfg)}
 }
 
-// do performs an HTTP request against the API and returns the response.
 func (e *testEnv) do(t *testing.T, method, target string, body any) *httptest.ResponseRecorder {
 	t.Helper()
 	var rdr io.Reader

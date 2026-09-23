@@ -10,9 +10,6 @@ import (
 	"kanban-dev-app/backend/internal/config"
 )
 
-// serveConfig exercises GET /api/config without a database — the endpoint only
-// reads configuration, so these tests run everywhere (unlike the DB-backed
-// handler tests, which skip when DATABASE_URL is unset).
 func serveConfig(t *testing.T, cfg config.Config) (*httptest.ResponseRecorder, appConfig) {
 	t.Helper()
 	rec := httptest.NewRecorder()
@@ -25,8 +22,6 @@ func serveConfig(t *testing.T, cfg config.Config) (*httptest.ResponseRecorder, a
 	return rec, got
 }
 
-// The SPA reads the DSN from here at boot; a build-time VITE_SENTRY_DSN would
-// be baked empty into the image. This is the contract the frontend relies on.
 func TestConfigExposesSentryDSN(t *testing.T) {
 	const dsn = "https://publickey@o123.ingest.sentry.io/456"
 
@@ -46,8 +41,6 @@ func TestConfigExposesSentryDSN(t *testing.T) {
 	}
 }
 
-// No DSN configured must still answer 200 with an empty DSN, so the SPA can
-// simply skip Sentry.init instead of erroring at boot.
 func TestConfigWithoutDSNStillAnswers(t *testing.T) {
 	rec, got := serveConfig(t, config.Config{AppEnv: "local"})
 
@@ -59,8 +52,6 @@ func TestConfigWithoutDSNStillAnswers(t *testing.T) {
 	}
 }
 
-// The endpoint is public and unauthenticated — a regression that leaked the
-// database password or any other secret through it would be silent.
 func TestConfigLeaksNoSecrets(t *testing.T) {
 	cfg := config.Config{
 		SentryDSN:   "https://publickey@o123.ingest.sentry.io/456",

@@ -9,14 +9,7 @@ import (
 	"time"
 )
 
-// The regression that cost an afternoon: building the app logger by wrapping
-// slog.Default().Handler() and then installing it with slog.SetDefault makes
-// slog and the standard log package call each other until the log package's
-// mutex locks against itself. The process hangs on its FIRST log line, with no
-// panic and no message — it simply stops, still "running".
-//
-// The timeout is the assertion: if the cycle comes back, this test hangs
-// instead of failing, and a hang is what the guard is for.
+// O timeout é a asserção: se o ciclo log/slog voltar, isto trava.
 func TestAppLoggerDoesNotDeadlockAfterSetDefault(t *testing.T) {
 	previous := slog.Default()
 	t.Cleanup(func() { slog.SetDefault(previous) })
@@ -37,8 +30,6 @@ func TestAppLoggerDoesNotDeadlockAfterSetDefault(t *testing.T) {
 	}
 }
 
-// Without a DSN the bridge must disappear entirely — local runs should not pay
-// for, or be changed by, machinery that has nowhere to send anything.
 func TestSentrySlogHandlerIsTransparentWithoutDSN(t *testing.T) {
 	base := slog.NewTextHandler(&bytes.Buffer{}, nil)
 
@@ -47,8 +38,6 @@ func TestSentrySlogHandlerIsTransparentWithoutDSN(t *testing.T) {
 	}
 }
 
-// The local log is the contract that must never break: whatever happens on the
-// Sentry side, `docker logs` still has to show every record, at every level.
 func TestSentrySlogHandlerAlwaysWritesLocally(t *testing.T) {
 	var buf bytes.Buffer
 	base := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})
@@ -65,8 +54,6 @@ func TestSentrySlogHandlerAlwaysWritesLocally(t *testing.T) {
 	}
 }
 
-// Attributes added with With() must survive to the record, and groups must
-// prefix the key — otherwise two different "id" fields collide in Sentry.
 func TestSentrySlogHandlerKeepsAttrsAndGroups(t *testing.T) {
 	var buf bytes.Buffer
 	base := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})
@@ -84,8 +71,6 @@ func TestSentrySlogHandlerKeepsAttrsAndGroups(t *testing.T) {
 	}
 }
 
-// Emitting to Sentry with no SDK initialized must not panic — the app has to
-// survive a missing or broken DSN, and this bridge runs on every warning.
 func TestSentrySlogHandlerSurvivesUninitializedSDK(t *testing.T) {
 	var buf bytes.Buffer
 	base := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})
@@ -111,8 +96,6 @@ func TestSentrySlogHandlerSurvivesUninitializedSDK(t *testing.T) {
 	}
 }
 
-// Level mapping: anything at or above the cut must reach Sentry's entry API,
-// and the severity must not collapse to a single level.
 func TestLogEntryForMapsLevels(t *testing.T) {
 	for _, tc := range []struct {
 		level slog.Level

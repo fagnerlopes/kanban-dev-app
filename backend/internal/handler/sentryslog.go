@@ -9,32 +9,21 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-// NewAppLogger builds the process-wide logger: plain text to stderr, plus a tee
-// into Sentry's structured logs from Warn up.
+// NewAppLogger monta o logger do processo: texto em stderr, mais um tee para os
+// structured logs do Sentry a partir de Warn.
 //
-// The base handler is constructed here, explicitly, and that is the whole
-// point. Wrapping slog.Default().Handler() instead looks equivalent and
-// deadlocks the process on its first log line: slog's built-in default handler
-// writes through the standard log package, and slog.SetDefault routes that
-// package back into the slog default — which would be this handler. The two
-// call each other until the log package's mutex locks against itself, with no
-// panic and no message. Never wrap the default handler and then SetDefault it.
+// ARMADILHA: o handler base é construído aqui de propósito. Embrulhar
+// slog.Default().Handler() e depois chamar slog.SetDefault trava o processo na
+// primeira linha de log — o handler padrão escreve pelo pacote log, o
+// SetDefault manda o pacote log de volta para o handler padrão, e o mutex do
+// log fecha contra si mesmo. Sem panic e sem mensagem.
 func NewAppLogger(dsn string) *slog.Logger {
 	base := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})
 	return slog.New(NewSentrySlogHandler(base, slog.LevelWarn, dsn))
 }
 
-// NewSentrySlogHandler tees slog records: they keep going to base (so
-// `docker logs` still shows everything) and, from minLevel up, they are also
-// emitted to Sentry's structured logs.
-//
-// A bridge rather than a new logging call at each site: the app already logs
-// with slog everywhere, so this turns the existing logs into Sentry logs
-// without touching a single caller. The Sentry Go SDK has no "enable logs"
-// option -- using sentry.NewLogger is what switches the feature on.
-//
-// Returns base unchanged when Sentry is not configured, so local runs are
-// untouched.
+// NewSentrySlogHandler duplica os registros: sempre para base, e de minLevel
+// para cima também para o Sentry. Sem DSN devolve base sem alteração.
 func NewSentrySlogHandler(base slog.Handler, minLevel slog.Level, dsn string) slog.Handler {
 	if dsn == "" {
 		return base
@@ -72,8 +61,6 @@ func (h *sentrySlogHandler) WithGroup(name string) slog.Handler {
 }
 
 func (h *sentrySlogHandler) Handle(ctx context.Context, r slog.Record) error {
-	// The local log is the one that must never be lost, so it goes first and
-	// its error is what we return.
 	err := h.base.Handle(ctx, r)
 	if r.Level < h.minLevel {
 		return err
@@ -94,8 +81,6 @@ func (h *sentrySlogHandler) Handle(ctx context.Context, r slog.Record) error {
 	return err
 }
 
-// levelName maps a slog level onto Sentry's. Split out from logEntryFor so the
-// mapping can be asserted without an initialized SDK.
 func levelName(level slog.Level) string {
 	switch {
 	case level >= slog.LevelError:
@@ -122,9 +107,6 @@ func logEntryFor(l sentry.Logger, level slog.Level) sentry.LogEntry {
 	}
 }
 
-// withAttr maps a slog attribute onto the Sentry entry, keeping the native
-// type where there is one so the value stays filterable in Sentry instead of
-// arriving as a string.
 func withAttr(e sentry.LogEntry, groups []string, a slog.Attr) sentry.LogEntry {
 	key := a.Key
 	for i := len(groups) - 1; i >= 0; i-- {
@@ -138,8 +120,6 @@ func withAttr(e sentry.LogEntry, groups []string, a slog.Attr) sentry.LogEntry {
 	case slog.KindInt64:
 		return e.Int64(key, v.Int64())
 	case slog.KindUint64:
-		// No Uint64 on the entry API; Int64 keeps it numeric and the values
-		// this app logs (ports, counts) are nowhere near overflowing.
 		return e.Int64(key, int64(v.Uint64()))
 	case slog.KindFloat64:
 		return e.Float64(key, v.Float64())
@@ -151,7 +131,6 @@ func withAttr(e sentry.LogEntry, groups []string, a slog.Attr) sentry.LogEntry {
 		}
 		return e
 	default:
-		// Durations, times, errors and anything custom.
 		return e.String(key, fmt.Sprint(v.Any()))
 	}
 }

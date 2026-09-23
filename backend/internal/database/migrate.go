@@ -16,8 +16,8 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Migrate applies all embedded migrations in filename order, tracking applied
-// ones in the schema_migrations table. Forward-only and idempotent.
+// Migrate aplica as migrations em ordem de nome, registrando as aplicadas em
+// schema_migrations. Forward-only.
 func Migrate(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (
 		filename TEXT PRIMARY KEY,
@@ -70,9 +70,8 @@ func Migrate(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-// Connect opens a Postgres *sql.DB (pgx stdlib) with retry (exponential
-// backoff, ~63s total). This handles parallel startup where the backend may
-// come up before the database is ready.
+// Connect abre a conexão com retry exponencial (~63s no total), porque o
+// backend pode subir antes do banco.
 func Connect(ctx context.Context, dsn string) (*sql.DB, error) {
 	var db *sql.DB
 	var err error
@@ -84,7 +83,7 @@ func Connect(ctx context.Context, dsn string) (*sql.DB, error) {
 			}
 			_ = db.Close()
 		}
-		delay := time.Second * (1 << i) // 1s, 2s, 4s, 8s, 16s, 32s
+		delay := time.Second * (1 << i)
 		slog.Warn("database not ready, retrying", "attempt", i+1, "delay", delay, "err", err)
 		time.Sleep(delay)
 	}

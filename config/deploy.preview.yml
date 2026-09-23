@@ -1,19 +1,8 @@
 <%
-  # Public hostname(s) of the app.
-  #
-  # APP_DOMAIN is a GitHub *repository variable* (not a secret -- a domain is
-  # public), passed through by the deploy workflow. Comma-separated to cover an
-  # apex plus its www ("ex.com.br,www.ex.com.br"); the first entry is canonical
-  # and becomes BASE_URL.
-  #
-  # The nip.io host is ALWAYS routed, custom domain or not. kamal-proxy routes
-  # strictly by Host header and only issues certificates for the hosts listed
-  # here, so a config that replaced nip.io with the custom domain would take the
-  # app offline the moment someone set APP_DOMAIN with the DNS not ready -- and
-  # the deploy would still go GREEN, because the health check talks to the
-  # container directly and never exercises the public hostname. Keeping nip.io
-  # means a wrong or unpropagated domain is a non-event: the IP address URL
-  # still serves the app.
+  # ARMADILHA: o host nip.io e roteado SEMPRE; APP_DOMAIN so acrescenta. O
+  # kamal-proxy roteia por cabecalho Host e o health check fala direto com o
+  # container, entao trocar o nip.io por um dominio sem DNS deixa o app
+  # inacessivel com o deploy VERDE.
   nip_host    = "#{ENV['INFRA_WEB_IP']}.nip.io"
   app_domains = ENV['APP_DOMAIN'].to_s.split(',').map(&:strip).reject(&:empty?)
   app_hosts   = ([nip_host] + app_domains).uniq
@@ -28,16 +17,12 @@ env:
     APP_ENV: preview
     SENTRY_TRACES_SAMPLE_RATE: "1" # workshop traffic is a room full of people, not production
     BASE_URL: https://<%= app_domains.first || nip_host %> # APP_DOMAIN when set, else nip.io
-    # DEV_MODE is deliberately absent. It is a LOCAL-ONLY flag: it registers the
-    # dev login route and tells the Go server that Vite -- not Go -- serves the
-    # SPA. Setting it here makes every page return 404.
+    # DEV_MODE e local-only: defini-lo aqui faz toda pagina devolver 404.
   secret:
     - DATABASE_URL # obtained from .kamal/secrets.preview
     - SENTRY_DSN # obtained from .kamal/secrets.preview (may be empty -> reporting disabled)
 
 proxy:
-  # Flow sequence on one line on purpose: ERB loops inside a YAML block
-  # sequence depend on the trim mode, which Kamal owns, not us.
   hosts: [<%= app_hosts.map(&:inspect).join(", ") %>]
   ssl: true # Let's Encrypt, one certificate per hostname
 
@@ -46,7 +31,7 @@ accessories:
     image: supabase/postgres:17.6.1.171 # see references/postgres-recipe.md
     host: <%= ENV['INFRA_DB_IP'] %> # provision job exports accessory IP address INFRA_db_IP
     port: "5432:5432"
-    cmd: "postgres -D /etc/postgresql -c shared_buffers=512MB -c effective_cache_size=1536MB -c work_mem=5MB -c maintenance_work_mem=128MB -c max_connections=100" # small plan (2 GiB RAM)
+    cmd: "postgres -D /etc/postgresql -c shared_buffers=512MB -c effective_cache_size=1536MB -c work_mem=5MB -c maintenance_work_mem=128MB -c max_connections=100"
     env:
       secret:
         - POSTGRES_PASSWORD # obtained from .kamal/secrets.preview

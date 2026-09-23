@@ -2,16 +2,6 @@
 #
 # Aponta um dominio proprio para o app, ou volta para o nip.io.
 #
-# Grava a variavel de repositorio APP_DOMAIN e republica. Antes disso confere
-# se o DNS ja resolve para a VM: o certificado e emitido por desafio HTTP-01,
-# entao o nome so passa a funcionar depois que o DNS aponta para ca.
-#
-# Com o DNS errado o deploy NAO falha -- ele fica verde e o dominio simplesmente
-# nao responde (o health check fala direto com o container, nunca com o nome
-# publico). O endereco nip.io continua servindo o app em qualquer caso, entao
-# isso nao derruba nada; a conferencia existe para o participante nao ficar
-# achando que configurou e nao entender por que o dominio nao abre.
-#
 #   ./scripts/set-domain.sh                         # pergunta o dominio
 #   ./scripts/set-domain.sh kanbandev.exemplo.dev   # direto
 #   ./scripts/set-domain.sh --reset                 # volta para o nip.io
@@ -27,22 +17,12 @@ command -v gh >/dev/null 2>&1 || die "o GitHub CLI (gh) nao esta instalado."
 gh auth status >/dev/null 2>&1 || die "voce nao esta logado no GitHub. Rode: gh auth login"
 gh repo view >/dev/null 2>&1 || die "rode este script de dentro do seu fork ja clonado."
 
-# Raiz do repo, para o script funcionar chamado de qualquer subpasta.
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "isto nao e um repositorio git."
 
-# --no-print-directory: sem isso o make aninhado anuncia
-# "Entrando no diretorio /home/..." no meio da saida, o que parece um caminho
-# vazado quando na verdade e so ruido do make.
 redeploy() { exec make -C "$ROOT" --no-print-directory deploy; }
 
-# Resolve um nome para IPv4 do ponto de vista PUBLICO, imprimindo um IP por
-# linha. Retorna 1 quando nao ha nenhuma ferramenta de DNS disponivel.
-#
-# Consultar resolvedores publicos nao e preciosismo: quem valida o dominio e o
-# Let's Encrypt, a partir da internet -- nao a sua maquina. Em rede corporativa
-# ou VPN o DNS interno costuma responder "nao existe" para zonas externas, e
-# confiar nele daria "ainda nao resolve" para um dominio perfeitamente
-# configurado. O resolvedor local entra so como complemento.
+# Resolve pelo DNS publico: quem valida o dominio e o Let's Encrypt, a partir
+# da internet. DNS corporativo ou VPN daria falso negativo.
 resolve_ips() {
   local name="$1" found="" server out have_tool=0
 
@@ -74,7 +54,6 @@ except Exception: pass" "$name" 2>/dev/null || true)
   return 0
 }
 
-# IP da VM web, lido do ultimo deploy bem-sucedido.
 web_ip() {
   local run tmp ip
   run=$(gh run list --workflow "Deploy Preview" --status success --limit 1 \

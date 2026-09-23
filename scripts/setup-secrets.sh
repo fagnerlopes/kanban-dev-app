@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 #
-# Cria, no SEU fork do GitHub, os secrets que a pipeline de deploy precisa.
-#
-#   CLOUDSTACK_API_KEY     voce cola (painel da Locaweb Cloud)
-#   CLOUDSTACK_SECRET_KEY  voce cola (painel da Locaweb Cloud)
-#   SSH_PRIVATE_KEY        gerado aqui
-#   POSTGRES_PASSWORD      gerado aqui
-#   SENTRY_DSN             voce cola (painel do Sentry) -- opcional
-#
-# E idempotente: secrets que ja existem sao mantidos. Use --force para
-# recriar tudo do zero.
+# Cria, no SEU fork do GitHub, os secrets que a pipeline precisa.
+# Idempotente: secrets existentes sao mantidos. --force recria tudo.
 #
 #   ./scripts/setup-secrets.sh
 #   ./scripts/setup-secrets.sh --force
@@ -67,8 +59,7 @@ bold "2/4  Senha do Postgres"
 if has_secret POSTGRES_PASSWORD; then
   skip "secret POSTGRES_PASSWORD ja existe"
 else
-  # Alfanumerica de proposito: a senha e interpolada dentro da DATABASE_URL,
-  # entao caracteres como @ / # so criariam armadilhas.
+  # Alfanumerica: a senha e interpolada dentro da DATABASE_URL.
   PG_PASS=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 40)
   printf '%s' "$PG_PASS" | gh secret set POSTGRES_PASSWORD
   unset PG_PASS

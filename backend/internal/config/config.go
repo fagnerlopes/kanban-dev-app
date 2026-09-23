@@ -8,29 +8,19 @@ import (
 )
 
 // Config holds runtime configuration read from environment variables.
-// Locally, values come from .env; in deployed environments, from Kamal config.
 type Config struct {
-	// Port the HTTP server listens on. 80 in deployed, 8080 in local dev.
-	Port string
-	// DatabaseURL is the Postgres connection string.
+	Port        string
 	DatabaseURL string
-	// BaseURL is the public origin of the app (used to derive absolute URLs).
-	BaseURL string
-	// DevMode enables development-only routes (e.g. POST /api/dev/login).
-	// Must NEVER be set in production.
-	DevMode bool
-	// SentryDSN is the Sentry DSN for error reporting. Empty disables reporting.
+	BaseURL     string
+	// DevMode nunca pode ser ligado em ambiente publicado.
+	DevMode   bool
 	SentryDSN string
-	// AppEnv names the environment ("local", "preview", ...). It is what Sentry
-	// groups issues by, so it must be a short label -- never a URL.
+	// AppEnv é o rótulo curto de ambiente que o Sentry usa para agrupar issues.
 	AppEnv string
-	// SentryTracesSampleRate is the fraction of requests traced, 0 to 1.
-	// 0 disables tracing. The workshop default is 1 (trace everything) because
-	// the traffic is a handful of people in a room; a real product would sample.
+	// SentryTracesSampleRate vai de 0 a 1; 0 desliga o tracing.
 	SentryTracesSampleRate float64
 }
 
-// Load reads configuration from the environment.
 func Load() Config {
 	cfg := Config{
 		Port:        getenv("PORT", "8080"),
@@ -45,9 +35,8 @@ func Load() Config {
 	return cfg
 }
 
-// sampleRate parses a 0..1 rate, falling back to the default for anything
-// unparseable or out of range -- a typo here should not silently turn tracing
-// off (or, worse, be rejected and take the whole app down at startup).
+// sampleRate cai no padrão para qualquer valor inválido: um erro de digitação
+// aqui não pode derrubar o app nem desligar o tracing em silêncio.
 func sampleRate(raw string, fallback float64) float64 {
 	if raw == "" {
 		return fallback
@@ -68,12 +57,8 @@ func getenv(key, fallback string) string {
 	return fallback
 }
 
-// normalizeDatabaseURL re-serializes the userinfo (user:password) of a
-// postgres:// DSN so the password is always percent-encoded. This makes the
-// DSN safe for net/url / pgx even if the password contains characters like
-// '@', '/', '+' or '#'. If the URL cannot be parsed (e.g. the password
-// already broke parsing), the input is returned unchanged so the driver
-// surfaces the underlying error.
+// normalizeDatabaseURL garante que a senha fique percent-encoded, para que
+// caracteres como '@' não quebrem o parsing da DSN.
 func normalizeDatabaseURL(dsn string) string {
 	if dsn == "" {
 		return dsn

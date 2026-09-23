@@ -12,10 +12,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// freshDatabase creates a throwaway database, runs every migration against it
-// and hands back a handle. A scratch database rather than the shared test one:
-// these assertions count rows, so anything another test left behind would make
-// them lie.
+// freshDatabase usa um banco descartável: estes testes contam linhas.
 func freshDatabase(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
@@ -86,8 +83,6 @@ func countByColumn(t *testing.T, db *sql.DB) map[string]int {
 	return got
 }
 
-// A fresh board must open with the example flow already on it — an empty board
-// shows a visitor nothing about how the app works.
 func TestMigrationsSeedTheExampleBoard(t *testing.T) {
 	db := freshDatabase(t)
 
@@ -106,8 +101,6 @@ func TestMigrationsSeedTheExampleBoard(t *testing.T) {
 	}
 }
 
-// Every seeded card needs a title and a description: a card with an empty body
-// looks like a bug in the app rather than sample content.
 func TestSeededTasksAreComplete(t *testing.T) {
 	db := freshDatabase(t)
 
@@ -122,8 +115,6 @@ func TestSeededTasksAreComplete(t *testing.T) {
 	}
 }
 
-// Positions order the cards inside a lane. Duplicates make the order depend on
-// whatever the database returns first, so the board reshuffles between loads.
 func TestSeededPositionsAreUniquePerColumn(t *testing.T) {
 	db := freshDatabase(t)
 
@@ -140,9 +131,6 @@ func TestSeededPositionsAreUniquePerColumn(t *testing.T) {
 	}
 }
 
-// The runner skips a migration it has already recorded, so the guard inside the
-// seed only matters for a database restored or migrated by hand. Running the
-// file again must still be a no-op — and must not touch a card someone edited.
 func TestSeedMigrationIsIdempotent(t *testing.T) {
 	db := freshDatabase(t)
 
@@ -179,7 +167,6 @@ func TestSeedMigrationIsIdempotent(t *testing.T) {
 	}
 }
 
-// Seeding must add to a lane, never renumber or displace what is already there.
 func TestSeedDoesNotDisturbExistingCards(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -187,8 +174,6 @@ func TestSeedDoesNotDisturbExistingCards(t *testing.T) {
 	}
 	db := freshDatabase(t)
 
-	// Simulate a board that was already in use: wipe the seed, add one card,
-	// then apply the seed on top of it.
 	if _, err := db.Exec(`DELETE FROM tasks`); err != nil {
 		t.Fatalf("clear tasks: %v", err)
 	}

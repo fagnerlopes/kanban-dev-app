@@ -13,7 +13,6 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Already logged in? Straight to the board.
   useEffect(() => {
     if (session) navigate("/board", { replace: true });
   }, [session, navigate]);
@@ -33,7 +32,6 @@ export default function Login() {
 
   return (
     <main className="min-h-screen bg-workbench flex flex-col">
-      {/* Top bar */}
       <header className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2 font-display font-semibold tracking-tight">
           <KanbanSquare className="size-5 text-[var(--color-accent)]" />
@@ -48,7 +46,6 @@ export default function Login() {
         </button>
       </header>
 
-      {/* Centered card */}
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-8 shadow-[var(--shadow-card)]">
           <div className="mb-6 flex flex-col items-center gap-2 text-center">

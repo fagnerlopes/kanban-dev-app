@@ -15,8 +15,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// spyTransport captures what the SDK would have sent, so these tests assert on
-// real SDK behaviour instead of trusting that a call was made.
 type spyTransport struct {
 	mu     sync.Mutex
 	events []*sentry.Event
@@ -38,8 +36,6 @@ func (s *spyTransport) captured() []*sentry.Event {
 	return append([]*sentry.Event{}, s.events...)
 }
 
-// withSpySentry initializes the SDK against a spy transport for the duration of
-// one test, restoring the previous hub afterwards.
 func withSpySentry(t *testing.T) *spyTransport {
 	t.Helper()
 	spy := &spyTransport{}
@@ -56,9 +52,6 @@ func withSpySentry(t *testing.T) *spyTransport {
 	return spy
 }
 
-// The gap this closes: before, a failing query answered 500 and told Sentry
-// nothing, because only panics were reported. Handing that error to an agent
-// was impossible — there was no record of it anywhere but the container log.
 func TestWriteErrReportsServerErrors(t *testing.T) {
 	spy := withSpySentry(t)
 	rec := httptest.NewRecorder()
@@ -78,8 +71,6 @@ func TestWriteErrReportsServerErrors(t *testing.T) {
 	}
 }
 
-// A missing row is an ordinary 404, not an incident. Reporting it would bury
-// the real errors under noise from every stale link.
 func TestWriteErrDoesNotReportNotFound(t *testing.T) {
 	spy := withSpySentry(t)
 	rec := httptest.NewRecorder()
@@ -95,8 +86,6 @@ func TestWriteErrDoesNotReportNotFound(t *testing.T) {
 	}
 }
 
-// Metrics run on every successful board operation, including in local dev with
-// no DSN. A nil meter there would crash the request it was measuring.
 func TestCountTaskOpIsSafeWithoutSentry(t *testing.T) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -106,8 +95,6 @@ func TestCountTaskOpIsSafeWithoutSentry(t *testing.T) {
 	countTaskOp(httptest.NewRequest(http.MethodPost, "/api/tasks", nil), "created")
 }
 
-// Tracing must stay off unless a DSN is configured, and InitSentry must never
-// be the thing that stops the app from booting.
 func TestInitSentryIsNoOpWithoutDSN(t *testing.T) {
 	if err := InitSentry(config.Config{AppEnv: "local", SentryTracesSampleRate: 1}); err != nil {
 		t.Fatalf("InitSentry without a DSN returned %v, want nil", err)

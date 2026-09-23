@@ -13,7 +13,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// boardResponse is the shape of GET /api/board: columns with their tasks.
 type boardResponse struct {
 	Columns []columnWithTasks `json:"columns"`
 }
@@ -148,22 +147,14 @@ func (api *API) handleDeleteTask(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleDevLogin is a DEV_MODE-only endpoint that issues a mock session so the
-// frontend (and Playwright visual checks) can reach authenticated routes
-// without a real auth flow. The user is created on the fly.
 func (api *API) handleDevLogin(w http.ResponseWriter, r *http.Request) {
-	// Mock user — single shared demo account for the workshop.
 	writeJSON(w, http.StatusOK, map[string]string{
 		"user":  "demo@kanban.local",
 		"token": "mock-session-token",
 	})
 }
 
-// countTaskOp records an Application Metrics counter for a board operation.
-//
-// Safe to call unconditionally: without a Sentry client the SDK hands back a
-// no-op meter. The request context carries the hub, so each count lands on the
-// trace of the request that produced it.
+// countTaskOp é seguro sem Sentry: o SDK devolve um meter no-op.
 func countTaskOp(r *http.Request, op string) {
 	sentry.NewMeter(r.Context()).Count("kanban.task."+op, 1)
 }
@@ -174,14 +165,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// writeErr turns a repository error into a response and, for anything that is
-// not an expected "not found", reports it to Sentry.
-//
-// Reporting here matters more than it looks: the only other path to Sentry is
-// the panic recovery, so a handled failure -- a broken query, a column that
-// disappeared, a database that went away -- used to produce a 500 on screen and
-// absolute silence in Sentry. That is the worst possible combination when the
-// whole point is to hand the error to an agent and ask for a fix.
+// writeErr responde e reporta ao Sentry tudo que não for 404.
 func writeErr(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
@@ -189,8 +173,6 @@ func writeErr(w http.ResponseWriter, r *http.Request, err error) {
 	}
 
 	slog.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
-	// Hub from the request when the middleware put one there, so the event
-	// carries the request and lands on the same trace as its transaction.
 	if hub := sentry.GetHubFromContext(r.Context()); hub != nil {
 		hub.CaptureException(err)
 	} else {
