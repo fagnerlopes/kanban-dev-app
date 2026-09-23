@@ -41,6 +41,7 @@ Tracker de desenvolvimento. Atualizado a cada sessão.
 | Sentry: tracing (`sentryhttp` + sample rate) | Done | `SENTRY_TRACES_SAMPLE_RATE`, default 1 |
 | Sentry: Application Metrics | Done | `kanban.task.{created,updated,deleted}` |
 | **Fix: deadlock ao instalar o logger** | Done | embrulhar `slog.Default().Handler()` + `SetDefault` trava o processo na 1ª linha de log, sem panic |
+| `GET /api/health` para monitoramento externo | Done | 200/503 com check de banco; separado do `/up` do kamal-proxy |
 | Ícone do GitHub no header (login + board) | Done | link vem de `repo_url` em `/api/config`, então cada fork aponta para si mesmo |
 | Seed de cards de exemplo (migration 003) | Done | 10 Backlog / 3 To Do / 4 In Dev / 2 Review / 4 Done; idempotente e não toca em cards existentes |
 | Bugs plantados (backend migration + frontend) | Pending | só depois do app 100% funcional — ver `WORKSHOP.md` |

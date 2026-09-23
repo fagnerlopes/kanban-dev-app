@@ -52,6 +52,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// ARMADILHA: /up e a sonda de vida do kamal-proxy e nao pode consultar o
+	// banco. Um blip do Postgres tiraria o app da rota e reprovaria deploys.
+	// O check profundo (banco incluso) e GET /api/health.
 	mux.HandleFunc("/up", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))

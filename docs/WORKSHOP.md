@@ -87,6 +87,7 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - [x] Crédito "Feito com Cofounder e Locaweb Cloud" (login + board)
 - [x] Domínio personalizado opcional via `APP_DOMAIN` (`make domain`)
 - [x] Seed de 23 cards de exemplo (migration 003) — o quadro abre populado
+- [x] `GET /api/health` (base do cronjob de alerta no Telegram)
 - [ ] Bugs plantados (após app funcional)
 
 ## Estado em 2026-09-19 (sessão de correção)

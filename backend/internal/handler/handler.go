@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"kanban-dev-app/backend/internal/config"
 
@@ -14,13 +15,15 @@ const releaseName = "kanban-dev-app"
 
 // API bundles the dependencies shared by all handlers.
 type API struct {
-	db  *sql.DB
-	cfg config.Config
+	db        *sql.DB
+	cfg       config.Config
+	startedAt time.Time
 }
 
 func NewAPI(db *sql.DB, cfg config.Config) http.Handler {
-	api := &API{db: db, cfg: cfg}
+	api := &API{db: db, cfg: cfg, startedAt: time.Now()}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/health", api.handleHealth)
 	mux.HandleFunc("GET /api/config", api.handleConfig)
 	mux.HandleFunc("GET /api/board", api.handleBoard)
 	mux.HandleFunc("POST /api/tasks", api.handleCreateTask)

@@ -107,6 +107,12 @@ ilegível no painel. Resolvida em ERB no `config/deploy.preview.yml`. Ver
   `SENTRY_AUTH_TOKEN` nem etapa de upload — e não deve haver: esse token seria
   necessário no **build da imagem**, repetindo a armadilha do `VITE_SENTRY_DSN`.
   Guardado por `TestViteBuildEmitsSourceMaps` e `TestFrontendServesSourceMaps`.
+- **Duas rotas de saúde, com papéis diferentes.** `GET /up` é a sonda de vida
+  do kamal-proxy: não consulta o banco, porque um blip do Postgres tiraria o app
+  da rota e reprovaria deploys. `GET /api/health` é o check profundo (inclui
+  `PingContext` no banco), devolve 503 quando algo está fora e é a rota feita
+  para monitoramento externo. Falhas dele **não** vão ao Sentry: uma sondagem
+  por minuto com o banco fora geraria um evento por minuto.
 - Migrations rodam **no startup do container** (web VM única, sem race). A 003
   popula o quadro com 23 cards de exemplo: só adiciona, nunca altera ou remove,
   e o `NOT EXISTS` por (coluna, título) a torna idempotente mesmo se reaplicada

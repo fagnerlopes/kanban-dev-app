@@ -144,6 +144,39 @@ Outras mensagens que funcionam bem:
 - *"Corrige o erro que acontece quando eu movo uma task de coluna."*
 - *"Publica a correção e me avisa quando estiver no ar."*
 
+## 8. Monitoramento com alerta no Telegram
+
+A API expõe um health check em **`/api/health`**:
+
+```bash
+curl https://SEU-ENDERECO/api/health
+```
+
+```json
+{
+  "status": "ok",
+  "checks": { "database": "ok" },
+  "environment": "preview",
+  "release": "kanban-dev-app",
+  "uptime_seconds": 3847
+}
+```
+
+Ele devolve **200** quando o app e o banco respondem, e **503** quando o banco
+está fora. Peça ao Hermes, pelo **Telegram**:
+
+> Crie um cronjob que consulte `https://SEU-ENDERECO/api/health` a cada minuto
+> e me avise aqui no Telegram sempre que a resposta não for 200. Só alerte —
+> não tente corrigir nada.
+
+Depois desligue a VM web no [painel da Locaweb
+Cloud](https://painel-cloud.locaweb.com.br/) e espere o alerta chegar. Para
+voltar, ligue a VM de novo.
+
+> **Por que não usar `/up`?** O `/up` é a sonda que o kamal-proxy usa para
+> decidir se manda tráfego para o app — ele só diz que o processo está vivo, de
+> propósito. O `/api/health` é o check profundo, que também consulta o banco.
+
 ---
 
 ## Domínio próprio (opcional)
