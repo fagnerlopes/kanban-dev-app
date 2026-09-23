@@ -86,6 +86,7 @@ ChatOps com o Hermes Agent. Duração: **1h30**.
 - [x] Pipeline de deploy (GHA + Kamal, só com secrets)
 - [x] Crédito "Feito com Cofounder e Locaweb Cloud" (login + board)
 - [x] Domínio personalizado opcional via `APP_DOMAIN` (`make domain`)
+- [x] Seed de 23 cards de exemplo (migration 003) — o quadro abre populado
 - [ ] Bugs plantados (após app funcional)
 
 ## Estado em 2026-09-19 (sessão de correção)

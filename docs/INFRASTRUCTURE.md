@@ -103,7 +103,10 @@ ilegível no painel. Resolvida em ERB no `config/deploy.preview.yml`. Ver
   `SENTRY_AUTH_TOKEN` nem etapa de upload — e não deve haver: esse token seria
   necessário no **build da imagem**, repetindo a armadilha do `VITE_SENTRY_DSN`.
   Guardado por `TestViteBuildEmitsSourceMaps` e `TestFrontendServesSourceMaps`.
-- Migrations rodam **no startup do container** (web VM única, sem race).
+- Migrations rodam **no startup do container** (web VM única, sem race). A 003
+  popula o quadro com 23 cards de exemplo: só adiciona, nunca altera ou remove,
+  e o `NOT EXISTS` por (coluna, título) a torna idempotente mesmo se reaplicada
+  à mão.
 - **Sem reverse proxy próprio.** Quem termina TLS e roteia a porta 80/443 é o
   **kamal-proxy**, provisionado pelo Kamal na web VM. Instalar nginx (ou
   qualquer outro proxy) na frente disso está fora do padrão e conflita com o
