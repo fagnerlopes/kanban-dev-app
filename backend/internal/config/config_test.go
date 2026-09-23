@@ -46,6 +46,18 @@ func TestSentryTracesSampleRateAcceptsValidRates(t *testing.T) {
 	}
 }
 
+func TestRepoURLFallsBackToUpstream(t *testing.T) {
+	t.Setenv("REPO_URL", "")
+	if got := Load().RepoURL; got != defaultRepoURL {
+		t.Errorf("RepoURL = %q, want the upstream default", got)
+	}
+
+	t.Setenv("REPO_URL", "https://github.com/participante/kanban-dev-app")
+	if got := Load().RepoURL; got != "https://github.com/participante/kanban-dev-app" {
+		t.Errorf("RepoURL = %q, want the value from the environment", got)
+	}
+}
+
 func TestAppEnvComesFromAppEnvNotBaseURL(t *testing.T) {
 	t.Setenv("APP_ENV", "preview")
 	t.Setenv("BASE_URL", "https://191.252.226.176.nip.io")

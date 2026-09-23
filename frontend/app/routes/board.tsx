@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { KanbanSquare, LogOut, Moon, Sun } from "lucide-react";
 import { Column } from "~/components/column";
+import { GithubLink } from "~/components/github-link";
 import { MadeWith } from "~/components/made-with";
 import { useAuth } from "~/hooks/use-auth";
 import { useTheme } from "~/hooks/use-theme";
@@ -92,6 +93,7 @@ export default function Board() {
           <span className="text-[var(--color-fg)]">Kanban Dev Flow</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <GithubLink />
           <button
             onClick={toggle}
             aria-label="Alternar tema"

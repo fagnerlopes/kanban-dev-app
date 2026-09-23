@@ -41,6 +41,17 @@ func TestConfigExposesSentryDSN(t *testing.T) {
 	}
 }
 
+// Cada participante forka: o link do header tem de apontar para o fork dele.
+func TestConfigExposesRepoURL(t *testing.T) {
+	const repo = "https://github.com/participante/kanban-dev-app"
+
+	_, got := serveConfig(t, config.Config{RepoURL: repo, AppEnv: "preview"})
+
+	if got.RepoURL != repo {
+		t.Errorf("repo_url = %q, want %q", got.RepoURL, repo)
+	}
+}
+
 func TestConfigWithoutDSNStillAnswers(t *testing.T) {
 	rec, got := serveConfig(t, config.Config{AppEnv: "local"})
 

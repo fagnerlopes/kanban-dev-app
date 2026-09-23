@@ -94,6 +94,10 @@ ilegível no painel. Resolvida em ERB no `config/deploy.preview.yml`. Ver
   o secret ficaria vazio no bundle com a pipeline verde. O backend serve o DSN
   em **`GET /api/config`** (`sentry_dsn`, `environment`, `release`) e a SPA lê
   dali. Ver [ADR-004](adr/004-sentry-dsn-em-runtime.md).
+- **`REPO_URL`** (`env.clear`, derivada de `REPO_FULL` no workflow) alimenta o
+  `repo_url` de `/api/config`, que é o destino do ícone do GitHub no header.
+  Pelo mesmo motivo do domínio: fixar a URL faria todo fork apontar para o
+  repositório de origem.
 - **`APP_ENV`** (`env.clear` de cada `config/deploy.<env>.yml`) é o rótulo de
   ambiente que o Sentry usa para agrupar as issues. Coberto por
   `TestDeployConfigsSetAppEnv`.

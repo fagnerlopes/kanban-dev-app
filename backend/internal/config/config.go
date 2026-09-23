@@ -19,7 +19,12 @@ type Config struct {
 	AppEnv string
 	// SentryTracesSampleRate vai de 0 a 1; 0 desliga o tracing.
 	SentryTracesSampleRate float64
+	// RepoURL e o repositorio deste app. Cada fork precisa apontar para o
+	// seu proprio, entao vem do ambiente e nao de uma constante.
+	RepoURL string
 }
+
+const defaultRepoURL = "https://github.com/fagnerlopes/kanban-dev-app"
 
 func Load() Config {
 	cfg := Config{
@@ -31,6 +36,7 @@ func Load() Config {
 		AppEnv:      getenv("APP_ENV", "local"),
 
 		SentryTracesSampleRate: sampleRate(os.Getenv("SENTRY_TRACES_SAMPLE_RATE"), 1),
+		RepoURL:                getenv("REPO_URL", defaultRepoURL),
 	}
 	return cfg
 }

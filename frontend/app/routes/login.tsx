@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { KanbanSquare, Loader2, Moon, Sun } from "lucide-react";
 import { MadeWith } from "~/components/made-with";
+import { GithubLink } from "~/components/github-link";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/hooks/use-auth";
 import { useTheme } from "~/hooks/use-theme";
@@ -37,13 +38,16 @@ export default function Login() {
           <KanbanSquare className="size-5 text-[var(--color-accent)]" />
           <span className="text-[var(--color-fg)]">Kanban Dev Flow</span>
         </div>
-        <button
-          onClick={toggle}
-          aria-label="Alternar tema"
-          className="cursor-pointer p-2 rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface)] transition-colors"
-        >
-          {theme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <GithubLink />
+          <button
+            onClick={toggle}
+            aria-label="Alternar tema"
+            className="cursor-pointer p-2 rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface)] transition-colors"
+          >
+            {theme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 flex items-center justify-center p-4">

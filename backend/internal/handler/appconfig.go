@@ -12,6 +12,7 @@ type appConfig struct {
 	SentryDSN   string `json:"sentry_dsn"`
 	Environment string `json:"environment"`
 	Release     string `json:"release"`
+	RepoURL     string `json:"repo_url"`
 }
 
 func (api *API) handleConfig(w http.ResponseWriter, r *http.Request) {
@@ -19,5 +20,6 @@ func (api *API) handleConfig(w http.ResponseWriter, r *http.Request) {
 		SentryDSN:   api.cfg.SentryDSN,
 		Environment: api.cfg.AppEnv,
 		Release:     releaseName,
+		RepoURL:     api.cfg.RepoURL,
 	})
 }
