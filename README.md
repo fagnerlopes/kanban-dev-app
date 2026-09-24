@@ -36,19 +36,25 @@ nuvem — só pega duas chaves de API.
 - **Hermes Agent** rodando e conectado ao seu Telegram.
 - `git`, `make` e `ssh-keygen` — no Windows, use **Git Bash** ou **WSL**.
 
-A conta do Sentry você cria no passo 6.
-
 ---
 
 ## 1. Fork e clone
 
 Abra <https://github.com/fagnerlopes/kanban-dev-app>, clique em **Fork** →
-**Create fork**. Depois:
+**Create fork**. Depois na raiz da VM Hermes:
 
 ```bash
+# Crie um diretório 
+mkdir workspace && cd workspace
+
+# Clone o repositório e acesse o diretório
 git clone clone SEU-USUARIO/kanban-dev-app
 cd kanban-dev-app
+
+# Instale o plugin Cofounder
 /bin/bash -c "$(curl -fsSL https://cofounder.locaweb.com.br/install.sh)"
+
+# Ative as skills do Cofounder no Hermes
 hermes skills trust
 ```
 
