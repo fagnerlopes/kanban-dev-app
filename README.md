@@ -46,8 +46,10 @@ Abra <https://github.com/fagnerlopes/kanban-dev-app>, clique em **Fork** →
 **Create fork**. Depois:
 
 ```bash
-gh repo clone SEU-USUARIO/kanban-dev-app
+git clone clone SEU-USUARIO/kanban-dev-app
 cd kanban-dev-app
+/bin/bash -c "$(curl -fsSL https://cofounder.locaweb.com.br/install.sh)"
+hermes skills trust
 ```
 
 ## 2. Ligue o GitHub Actions
